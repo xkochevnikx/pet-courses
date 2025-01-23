@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Roboto_Mono, Smooch_Sans } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/shared/lib/utils";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+//дефолтный шрифт
+export const roboto = Roboto_Mono({ subsets: ["latin"] });
+//для эксперимента второй шрифт через определение переменной окружения
+export const testFonts = Smooch_Sans({
+  variable: "--test-fonts",
   subsets: ["latin"],
 });
 
@@ -24,9 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={cn(roboto.className, testFonts.variable, "antialiased")}>
         {children}
       </body>
     </html>
