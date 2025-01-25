@@ -4,9 +4,9 @@ import "./globals.css";
 import { cn } from "@/shared/lib/utils";
 
 //дефолтный шрифт
-export const roboto = Roboto_Mono({ subsets: ["latin"] });
+const roboto = Roboto_Mono({ subsets: ["latin"] });
 //для эксперимента второй шрифт через определение переменной окружения
-export const testFonts = Smooch_Sans({
+const testFonts = Smooch_Sans({
   variable: "--test-fonts",
   subsets: ["latin"],
 });
