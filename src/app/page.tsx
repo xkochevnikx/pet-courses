@@ -1,12 +1,12 @@
-import { Button } from "@/shared/components/ui/button";
+import { client } from "@/shared/lib/db";
+import { Button } from "@/shared/ui/button";
 
-export default function Home() {
+export default async function Home() {
+  const courses = await client.course.findMany();
+  console.log("🚀 ~ Home ~ courses:", courses);
   return (
     <>
       <Button variant="secondary">Button</Button>
-      <Button variant="default" className="font-test">
-        Button
-      </Button>
     </>
   );
 }
