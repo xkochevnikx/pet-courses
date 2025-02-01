@@ -118,8 +118,14 @@
     "enable": false,
     "required": false
   },
-  "commit_ticket": {
-    "enable": false
+  "check_ticket": {
+    "infer_ticket": false,
+    "confirm_ticket": false,
+    "add_to_title": false,
+    "append_hashtag": false
+  },
+  "commit_title": {
+    "max_size": 100
   },
 
   "commit_footer": {
@@ -150,10 +156,6 @@
     "separator": "/"
   },
 
-  "branch_description": {
-    "max_length": 80,
-    "separator": ""
-  },
   "branch_action_default": "branch",
   "branch_order": ["user", "version", "type", "description"],
   "enable_worktrees": true,
