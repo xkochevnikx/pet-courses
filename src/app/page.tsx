@@ -1,12 +1,14 @@
-import { client } from "@/shared/lib/db";
-import { Button } from "@/shared/ui/button";
+import { CoursesList } from "@/features/courses-list/pub/courses-list";
+import { CreateCourseForm } from "@/features/courses-list/pub/create-course-form";
 
 export default async function Home() {
-  const courses = await client.course.findMany();
-  console.log("🚀 ~ Home ~ courses:", courses);
   return (
     <>
-      <Button variant="secondary">Button</Button>
+      <CreateCourseForm
+        revalidatePagePath="/"
+        className="max-w-[300px] mb-10 p-4"
+      />
+      <CoursesList revalidatePagePath="/" className="max-w-[300px] mb-10 p-4" />
     </>
   );
 }

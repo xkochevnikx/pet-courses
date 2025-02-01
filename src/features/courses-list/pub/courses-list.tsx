@@ -1,10 +1,13 @@
 import { coursesRepository } from "../courses.repository";
 import { revalidatePath } from "next/cache";
 import { CourseItem } from "../ui/course-item";
-export const coursesList = async ({
+import { cn } from "@/shared/lib/utils";
+export const CoursesList = async ({
   revalidatePagePath,
+  className,
 }: {
   revalidatePagePath: string;
+  className: string;
 }) => {
   const courses = await coursesRepository.getCoursesList();
 
@@ -15,7 +18,7 @@ export const coursesList = async ({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn(className, "flex flex-col gap-3")}>
       {courses.map((course) => (
         <CourseItem
           key={course.id}
