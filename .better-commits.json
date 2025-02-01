@@ -1,0 +1,163 @@
+{
+  "check_status": true,
+  "commit_type": {
+    "enable": true,
+    "initial_value": "feat",
+    "infer_type_from_branch": true,
+    "append_emoji_to_label": false,
+    "append_emoji_to_commit": false,
+    "options": [
+      {
+        "value": "feat",
+        "label": "feat",
+        "hint": "Добавление нового функционала",
+        "emoji": "✨",
+        "trailer": "Changelog: feature"
+      },
+      {
+        "value": "fix",
+        "label": "fix",
+        "hint": "Исправление ошибок",
+        "emoji": "🐛",
+        "trailer": "Changelog: fix"
+      },
+      {
+        "value": "docs",
+        "label": "docs",
+        "hint": "Обновление документации",
+        "emoji": "📚",
+        "trailer": "Changelog: documentation"
+      },
+      {
+        "value": "refactor",
+        "label": "refactor",
+        "hint": "Правки кода без исправления ошибок или добавления новых функций",
+        "emoji": "🔨",
+        "trailer": "Changelog: refactor"
+      },
+      {
+        "value": "perf",
+        "label": "perf",
+        "hint": "Изменения направленные на улучшение производительности",
+        "emoji": "🚀",
+        "trailer": "Changelog: performance"
+      },
+      {
+        "value": "test",
+        "label": "test",
+        "hint": "Добавление тестов",
+        "emoji": "🚨",
+        "trailer": "Changelog: test"
+      },
+      {
+        "value": "build",
+        "label": "build",
+        "hint": "Сборка проекта или изменения внешних зависимостей, конфиги проекта",
+        "emoji": "🚧",
+        "trailer": "Changelog: build"
+      },
+
+      {
+        "value": "chore",
+        "label": "chore",
+        "hint": "Другие изменения, не изменяющие файлы src или test",
+        "emoji": "🧹",
+        "trailer": "Changelog: chore"
+      },
+      {
+        "value": "style",
+        "label": "style",
+        "hint": "Правки стилей",
+        "emoji": "💄",
+        "trailer": "Changelog: style"
+      }
+    ]
+  },
+
+  "commit_scope": {
+    "enable": true,
+    "custom_scope": false,
+    "initial_value": "app",
+    "options": [
+      {
+        "value": "app",
+        "label": "app"
+      },
+      {
+        "value": "pages",
+        "label": "pages"
+      },
+      {
+        "value": "widgets",
+        "label": "widgets"
+      },
+      {
+        "value": "features",
+        "label": "features"
+      },
+      {
+        "value": "entities",
+        "label": "entities"
+      },
+      {
+        "value": "shared",
+        "label": "shared"
+      },
+      {
+        "value": "other",
+        "label": "other"
+      },
+      {
+        "value": "root",
+        "label": "root"
+      }
+    ]
+  },
+
+  "commit_body": {
+    "enable": false,
+    "required": false
+  },
+  "commit_ticket": {
+    "enable": false
+  },
+
+  "commit_footer": {
+    "enable": false
+  },
+  "breaking_change": {
+    "add_exclamation_to_title": false
+  },
+  "confirm_commit": true,
+  "confirm_with_editor": false,
+  "print_commit_output": true,
+  "branch_pre_commands": [],
+  "branch_post_commands": [],
+  "worktree_pre_commands": [],
+  "worktree_post_commands": [],
+  "branch_user": {
+    "enable": true,
+    "required": false,
+    "separator": "/"
+  },
+  "branch_type": {
+    "enable": true,
+    "separator": "/"
+  },
+  "branch_version": {
+    "enable": false,
+    "required": false,
+    "separator": "/"
+  },
+
+  "branch_description": {
+    "max_length": 80,
+    "separator": ""
+  },
+  "branch_action_default": "branch",
+  "branch_order": ["user", "version", "type", "description"],
+  "enable_worktrees": true,
+  "overrides": {
+    "shell": "/bin/sh"
+  }
+}
