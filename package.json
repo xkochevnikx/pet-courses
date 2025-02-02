@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "prettier": "prettier -w .",
-    "commit": "npm run prettier && better-commits",
+    "commit": "npm run prettier && npm run build && better-commits",
     "drop": "rm -rf ./node_modules .next package-lock.json",
     "lint:types": "tsc --noEmit",
     "test": "jest",
