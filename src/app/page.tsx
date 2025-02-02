@@ -4,6 +4,7 @@ import { CreateCourseForm } from "@/features/courses-list/pub/create-course-form
 export default async function Home() {
   return (
     <>
+      <h1>courses</h1>
       <CreateCourseForm
         revalidatePagePath="/"
         className="max-w-[300px] mb-10 p-4"
