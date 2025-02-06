@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { CourseItem } from "./course-item";
 import userEvent from "@testing-library/user-event";
+
+import { CourseItem } from "./course-item";
 
 describe("course-item", () => {
   it("should call delete callback", async () => {

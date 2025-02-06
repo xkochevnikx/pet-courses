@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
 import { Roboto_Mono, Smooch_Sans } from "next/font/google";
-import "./globals.css";
+import React from "react";
+
 import { cn } from "@/shared/lib/utils";
+
+import type { Metadata } from "next";
+import "./globals.css";
 
 //дефолтный шрифт
 const roboto = Roboto_Mono({ subsets: ["latin"] });

@@ -1,31 +1,36 @@
-import { coursesRepository } from "../courses.repository";
-import { revalidatePath } from "next/cache";
-import { CourseItem } from "../ui/course-item";
+"use client";
+
 import { cn } from "@/shared/lib/utils";
-export const CoursesList = async ({
+import ErrorBoundary from "@/shared/ui/errorBoundary";
+
+import { handleDeleteAction } from "../model/actions";
+import { CourseListElement } from "../model/types";
+import { CourseItem } from "../ui/course-item";
+import { CourseItemFallback } from "../ui/course-item.fallback";
+
+export const CoursesList = ({
   revalidatePagePath,
   className,
+  courses,
 }: {
   revalidatePagePath: string;
   className: string;
+  courses: CourseListElement[];
 }) => {
-  const courses = await coursesRepository.getCoursesList();
-
-  const handleDeleteAction = async (courseId: string) => {
-    "use server";
-    await coursesRepository.deleteCourseElement({ id: courseId });
-    revalidatePath(revalidatePagePath);
-  };
-
   return (
     <div className={cn(className, "flex flex-col gap-3")}>
       {courses.map((course) => (
-        <CourseItem
-          key={course.id}
-          course={course}
-          onDelete={handleDeleteAction.bind(null, course.id)}
-          //   onDelete={() => handleDeleteAction(course.id)}
-        />
+        <ErrorBoundary key={course.id} fallback={CourseItemFallback}>
+          <CourseItem
+            course={course}
+            onDelete={() =>
+              handleDeleteAction({
+                revalidatePagePath,
+                courseId: course.id,
+              })
+            }
+          />
+        </ErrorBoundary>
       ))}
     </div>
   );

@@ -1,5 +1,7 @@
-import { dbClient } from "@/shared/lib/db";
 import { cache } from "react";
+
+import { dbClient } from "@/shared/lib/db";
+
 import {
   CourseListElement,
   CreateCourseListElementCommand,

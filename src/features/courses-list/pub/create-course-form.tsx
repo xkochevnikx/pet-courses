@@ -1,5 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import {
   Form,
@@ -11,12 +17,8 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+
 import { createCourseAction } from "../model/actions";
-import { cn } from "@/shared/lib/utils";
-import { useTransition } from "react";
 
 const createCourseFormSchema = z.object({
   name: z.string(),
