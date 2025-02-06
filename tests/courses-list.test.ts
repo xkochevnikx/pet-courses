@@ -6,6 +6,7 @@ test("test", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 
   await page.getByRole("textbox", { name: "name" }).click();
+
   await page.getByRole("textbox", { name: "name" }).fill("svyat");
   await page.getByRole("textbox", { name: "description" }).click();
   await page
