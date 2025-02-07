@@ -2,8 +2,10 @@ import { Roboto_Mono, Smooch_Sans } from "next/font/google";
 import React from "react";
 
 import { cn } from "@/shared/lib/utils";
+import { Header } from "@/widgets/header";
 
 import type { Metadata } from "next";
+
 import "./globals.css";
 
 //дефолтный шрифт
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn(roboto.className, testFonts.variable, "antialiased")}>
+        <Header variant="public" />
         {children}
       </body>
     </html>
