@@ -13,13 +13,13 @@ test("test", async ({ page }) => {
     .getByRole("textbox", { name: "description" })
     .fill("frontend engineer");
   await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByText("svyatfrontend engineerУдалить").click();
+  await page.getByText("svyat").click();
   await page
     .locator("div")
-    .filter({ hasText: /^svyatfrontend engineerУдалить$/ })
+    .filter({ hasText: /^svyat$/ })
     .getByRole("button")
     .click();
   await expect(
-    page.getByText("svyatfrontend engineerУдалить"),
+    page.getByText("svyat"),
   ).not.toBeVisible();
 });
