@@ -1,6 +1,7 @@
 import { Roboto_Mono, Smooch_Sans } from "next/font/google";
 import React from "react";
 
+import { ThemeProvider } from "@/features/theme-switcher";
 import { cn } from "@/shared/lib/utils";
 import { Header } from "@/widgets/header";
 
@@ -27,9 +28,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={cn(roboto.className, testFonts.variable, "antialiased")}>
-        <Header variant="public" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Header variant="public" />
+        </ThemeProvider>
         {children}
       </body>
     </html>

@@ -14,10 +14,12 @@ import {
 export const Layout = ({
   logo,
   nav,
+  actions,
   profile,
 }: {
   logo: ReactNode;
   nav: ReactNode;
+  actions: ReactNode;
   profile: ReactNode;
 }) => {
   return (
@@ -48,6 +50,7 @@ export const Layout = ({
         <div className="items-center flex-1 flex">
           <div className="hidden md:flex">{nav}</div>
           <div className="flex flex-1 items-center justify-end space-x-3 ">
+            {actions}
             {profile}
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { ThemeSwitcher } from "@/features/theme-switcher";
+
 import { Layout } from "./layout";
 import { Logo } from "./logo";
 import { Nav } from "./nav";
@@ -10,6 +12,11 @@ export const Header = ({
 }) => {
   const isProfile = variant !== "auth";
   return (
-    <Layout logo={<Logo />} nav={<Nav />} profile={isProfile && <Profile />} />
+    <Layout
+      logo={<Logo />}
+      nav={<Nav />}
+      actions={<ThemeSwitcher />}
+      profile={isProfile && <Profile />}
+    />
   );
 };
