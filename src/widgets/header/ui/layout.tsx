@@ -1,5 +1,3 @@
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Menu } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -8,16 +6,19 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/shared/ui/sheet";
 
 export const Layout = ({
   logo,
   nav,
+  actions,
   profile,
 }: {
   logo: ReactNode;
   nav: ReactNode;
+  actions: ReactNode;
   profile: ReactNode;
 }) => {
   return (
@@ -33,9 +34,7 @@ export const Layout = ({
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader className=" border-b pb-5 mb-5">
-                <DialogTitle>
-                  <VisuallyHidden> qwerty</VisuallyHidden>
-                </DialogTitle>
+                <SheetTitle hidden>Edit profile</SheetTitle>
 
                 {logo}
               </SheetHeader>
@@ -48,6 +47,7 @@ export const Layout = ({
         <div className="items-center flex-1 flex">
           <div className="hidden md:flex">{nav}</div>
           <div className="flex flex-1 items-center justify-end space-x-3 ">
+            {actions}
             {profile}
           </div>
         </div>

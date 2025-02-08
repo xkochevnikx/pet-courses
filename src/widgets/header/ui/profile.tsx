@@ -1,8 +1,8 @@
 "use client";
-import { Avatar, AvatarFallback } from "@radix-ui/react-avatar";
 import { LogOut, User } from "lucide-react";
 import Link from "next/link";
 
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ export function Profile() {
           variant="ghost"
           className="p-px rounded-full self-center h-8 w-8"
         >
-          <Avatar className="w-8 h-8 flex items-center justify-center">
+          <Avatar>
             <AvatarFallback>AC</AvatarFallback>
           </Avatar>
         </Button>
