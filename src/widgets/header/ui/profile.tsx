@@ -1,7 +1,10 @@
 "use client";
+import { AvatarImage } from "@radix-ui/react-avatar";
 import { LogOut, User } from "lucide-react";
 import Link from "next/link";
 
+import { useAppSessionClient } from "@/entities/user";
+import { SignInButton, useSignOut } from "@/features/auth";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import {
@@ -13,8 +16,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 export function Profile() {
+  const session = useAppSessionClient();
+
+  const { signOut, isLoading } = useSignOut();
+
+  if (session.status === "loading") {
+    return <Skeleton className="rounded-full h-8 w-8" />;
+  }
+
+  if (session.status === "unauthenticated") {
+    return <SignInButton />;
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -23,6 +38,7 @@ export function Profile() {
           className="p-px rounded-full self-center h-8 w-8"
         >
           <Avatar>
+            <AvatarImage src={session.data?.user.image} />
             <AvatarFallback>AC</AvatarFallback>
           </Avatar>
         </Button>
@@ -31,7 +47,7 @@ export function Profile() {
         <DropdownMenuLabel>
           <p>Мой аккаунт</p>
           <p className="text-xs text-muted-foreground overflow-hidden text-ellipsis">
-            svt
+            {session.data?.user.name}
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -42,7 +58,7 @@ export function Profile() {
               <span>Профиль</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {}}>
+          <DropdownMenuItem onClick={() => signOut()} disabled={isLoading}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Выход</span>
           </DropdownMenuItem>
