@@ -78,7 +78,6 @@ const eslintConfig = [
       "boundaries/include": ["src/**/*"], // 🟢 Включаем весь `src`
       "boundaries/elements": [
         { type: "app", pattern: "app" }, // 🔹 App-слой
-        { type: "pages", pattern: "src/pages/*", capture: ["page"] }, // 🔹 Страницы
         { type: "widgets", pattern: "widgets/*", capture: ["widget"] }, // 🔹 Виджеты
         { type: "features", pattern: "features/*", capture: ["feature"] }, // 🔹 Фичи
         { type: "entities", pattern: "entities/*", capture: ["entity"] }, // 🔹 Сущности
@@ -105,13 +104,53 @@ const eslintConfig = [
         {
           default: "disallow",
           rules: [
-            { target: [["shared", { segment: "lib" }]], allow: "**" },
-            { target: [["shared", { segment: "constants" }]], allow: "**" },
-            { target: [["shared", { segment: "config" }]], allow: "**" },
-            { target: [["shared", { segment: "ui" }]], allow: "**" },
-            { target: [["shared", { segment: "api" }]], allow: "index.ts" },
             {
-              target: ["app", "pages", "widgets", "features", "entities"],
+              target: [
+                [
+                  "shared",
+                  {
+                    segment: "lib",
+                  },
+                ],
+              ],
+              allow: "**",
+            },
+            {
+              target: [
+                [
+                  "shared",
+                  {
+                    segment: "constants",
+                  },
+                ],
+              ],
+              allow: "**",
+            },
+
+            {
+              target: [
+                [
+                  "shared",
+                  {
+                    segment: "ui",
+                  },
+                ],
+              ],
+              allow: "**",
+            },
+            {
+              target: [
+                [
+                  "shared",
+                  {
+                    segment: "api",
+                  },
+                ],
+              ],
+              allow: "**",
+            },
+            {
+              target: ["app", "widgets", "features", "entities"],
               allow: "index.(ts|tsx)",
             },
           ],
@@ -127,32 +166,63 @@ const eslintConfig = [
           rules: [
             {
               from: ["shared"],
-              disallow: ["app", "pages", "widgets", "features", "entities"],
+              disallow: ["app", "widgets", "features", "entities"],
               message:
                 "Shared module must not import upper layers (${dependency.type})",
             },
             {
               from: ["entities"],
-              disallow: ["app", "pages", "widgets", "features"],
+              disallow: ["app", "widgets", "features"],
               message:
                 "Entity must not import upper layers (${dependency.type})",
             },
             {
+              from: ["entities"],
+              message: "Entity must not import other entity",
+              disallow: [
+                [
+                  "entities",
+                  {
+                    entity: "!${entity}",
+                  },
+                ],
+              ],
+            },
+            {
               from: ["features"],
-              disallow: ["app", "pages", "widgets"],
+              disallow: ["app", "widgets"],
               message:
                 "Feature must not import upper layers (${dependency.type})",
             },
             {
+              from: ["features"],
+              message: "Feature must not import other feature",
+              disallow: [
+                [
+                  "features",
+                  {
+                    feature: "!${feature}",
+                  },
+                ],
+              ],
+            },
+            {
               from: ["widgets"],
-              disallow: ["app", "pages"],
+              disallow: ["app"],
               message:
                 "Widget must not import upper layers (${dependency.type})",
             },
             {
-              from: ["pages"],
-              disallow: ["app"],
-              message: "Page must not import upper layers (${dependency.type})",
+              from: ["widgets"],
+              message: "Widget must not import other widget",
+              disallow: [
+                [
+                  "widgets",
+                  {
+                    widget: "!${widget}",
+                  },
+                ],
+              ],
             },
           ],
         },

@@ -1,3 +1,5 @@
+import {} from "next-auth";
+
 import {
   CoursesList,
   coursesRepository,
@@ -6,7 +8,6 @@ import {
 
 export default async function Home() {
   const courses = await coursesRepository.getCoursesList();
-  console.log("🚀 ~ Home ~ courses:", courses);
 
   return (
     <>

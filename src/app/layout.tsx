@@ -1,9 +1,9 @@
 import { Roboto_Mono, Smooch_Sans } from "next/font/google";
-import React from "react";
+import { ReactNode } from "react";
 
-import { ThemeProvider } from "@/features/theme-switcher";
 import { cn } from "@/shared/lib/utils";
-import { Header } from "@/widgets/header";
+
+import { AppProvider } from "./providers/app-provider";
 
 import type { Metadata } from "next";
 
@@ -25,20 +25,12 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(roboto.className, testFonts.variable, "antialiased")}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Header variant="public" />
-        </ThemeProvider>
-        {children}
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

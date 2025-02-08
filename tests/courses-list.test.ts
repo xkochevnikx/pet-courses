@@ -19,7 +19,5 @@ test("test", async ({ page }) => {
     .filter({ hasText: /^svyat$/ })
     .getByRole("button")
     .click();
-  await expect(
-    page.getByText("svyat"),
-  ).not.toBeVisible();
+  await expect(page.getByText("svyat")).not.toBeVisible();
 });
