@@ -1,5 +1,3 @@
-import {} from "next-auth";
-
 import {
   CoursesList,
   coursesRepository,
