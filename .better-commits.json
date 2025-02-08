@@ -125,7 +125,7 @@
     "append_hashtag": false
   },
   "commit_title": {
-    "max_size": 100
+    "max_size": 120
   },
 
   "commit_footer": {
