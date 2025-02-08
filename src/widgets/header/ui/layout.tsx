@@ -1,5 +1,3 @@
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Menu } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -8,6 +6,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/shared/ui/sheet";
 
@@ -35,9 +34,7 @@ export const Layout = ({
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader className=" border-b pb-5 mb-5">
-                <DialogTitle>
-                  <VisuallyHidden> qwerty</VisuallyHidden>
-                </DialogTitle>
+                <SheetTitle hidden>Edit profile</SheetTitle>
 
                 {logo}
               </SheetHeader>
