@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 test("test", async ({ page }) => {
+  console.log("Navigating to:", process.env.TEST_ENV_BASE_URL);
+
   await page.goto("/");
 
-  await page.waitForLoadState("networkidle");
-
+  await page.waitForLoadState("load"); // ✅ Гарантирует, что DOM загружен
   await page.getByRole("textbox", { name: "name" }).click();
 
   await page.getByRole("textbox", { name: "name" }).fill("svyat");
