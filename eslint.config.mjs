@@ -151,7 +151,7 @@ const eslintConfig = [
             },
             {
               target: ["app", "widgets", "features", "entities"],
-              allow: "index.(ts|tsx)",
+              allow: "(index|server-index)\\.(ts|tsx)", // ✅ Разрешает index.ts, index.tsx, server-index.ts, server-index.tsx
             },
           ],
         },
