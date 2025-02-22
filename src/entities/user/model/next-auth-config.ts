@@ -17,6 +17,7 @@ export const nextAuthConfig: AuthOptions = {
           user: privateEnv.EMAIL_SERVER_USER,
           pass: privateEnv.EMAIL_SERVER_PASSWORD,
         },
+        secure: false,
       },
       from: privateEnv.EMAIL_FROM,
     }),
