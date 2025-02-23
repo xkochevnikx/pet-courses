@@ -8,6 +8,11 @@ import { privateEnv } from "@/shared/lib/parse-private-env";
 
 export const nextAuthConfig: AuthOptions = {
   adapter: PrismaAdapter(dbClient) as AuthOptions["adapter"],
+  pages: {
+    signIn: "/auth/sign-in",
+    newUser: "/auth/new-user",
+    verifyRequest: "/auth/verify-request",
+  },
   providers: [
     EmailProvider({
       server: {

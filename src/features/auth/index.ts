@@ -1,2 +1,2 @@
-export { SignInButton } from "./sign-in-button";
+export { SignInButton } from "./ui/sign-in-button";
 export { useSignOut } from "./use-sign-out";
