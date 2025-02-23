@@ -7,6 +7,7 @@ import { cn } from "@/shared/lib/utils";
 
 import { Divider } from "./divider";
 import { EmailSignInForm } from "./email-sign-in-form";
+import { ProviderButton } from "./provider-button";
 
 export const SignInForm = async ({ className }: { className?: string }) => {
   const oauthProviders = await getProviders().then((providers) => {
@@ -14,17 +15,21 @@ export const SignInForm = async ({ className }: { className?: string }) => {
       (provider) => provider.type === "oauth",
     );
   });
-  console.log("🚀 ~ oauthProviders ~  oauthProviders:", oauthProviders);
   return (
-    <div className={cn(className, "flex-col gap-6")}>
+    <div className={cn(className, "flex flex-col gap-2")}>
       <Suspense fallback={<div>Загрузка...</div>}>
-        <EmailSignInForm />
+        <EmailSignInForm className="flex flex-col gap-6" />
       </Suspense>
       <Divider />
-      {/* {oauthProviders?.map(() => (
-        <></>
-        // <ProviderButton key={provider.id} provider={provider} />
-      ))} */}
+      <Suspense fallback={<div>Загрузка...</div>}>
+        {oauthProviders?.map((provider) => (
+          <ProviderButton
+            key={provider.id}
+            provider={provider}
+            className="min-w-fit"
+          />
+        ))}
+      </Suspense>
     </div>
   );
 };
