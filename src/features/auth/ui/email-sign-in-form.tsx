@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
+import { Spinner } from "@/shared/ui/spinner";
 
 import { useEmailSignIn } from "../model/use-email-sign-in";
 
@@ -28,7 +29,7 @@ export const EmailSignInForm = ({ className }: { className?: string }) => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit((data) => emailSignIn.signIn(data.email))}
-        className={cn(className, "space-y-8")}
+        className={cn(className)}
       >
         <FormField
           control={form.control}
@@ -37,14 +38,27 @@ export const EmailSignInForm = ({ className }: { className?: string }) => {
             <FormItem>
               <FormLabel>Введите почту</FormLabel>
               <FormControl>
-                <Input placeholder="email.." {...field} />
+                <Input
+                  placeholder="email.."
+                  type="email"
+                  autoComplete="email"
+                  disabled={emailSignIn.signInIsLoading}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button disabled={emailSignIn.signInIsLoading} type="submit">
+        <Button
+          disabled={emailSignIn.signInIsLoading}
+          type="submit"
+          className="min-w-full"
+        >
+          {emailSignIn.signInIsLoading && (
+            <Spinner className="mr-2 h-4 w-4 " aria-label="Загрузка выхода" />
+          )}
           Войти
         </Button>
       </form>
