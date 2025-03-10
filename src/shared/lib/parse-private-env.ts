@@ -8,6 +8,8 @@ const parsePrivateEnvSchema = z.object({
   EMAIL_SERVER_HOST: z.string().optional(),
   EMAIL_SERVER_PORT: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+
+  ADMIN_EMAILS: z.string().optional(),
 });
 
 export const privateEnv = parsePrivateEnvSchema.parse(process?.env);

@@ -20,6 +20,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 
 export function Profile() {
   const session = useAppSessionClient();
+  console.log("🚀 ~ Profile ~ session:", session);
 
   const { signOut, isLoading } = useSignOut();
 
@@ -38,7 +39,7 @@ export function Profile() {
           className="p-px rounded-full self-center h-8 w-8"
         >
           <Avatar>
-            <AvatarImage src={session.data?.user.image} />
+            <AvatarImage src={session?.data?.user.image ?? ""} />
             <AvatarFallback>AC</AvatarFallback>
           </Avatar>
         </Button>
@@ -47,7 +48,7 @@ export function Profile() {
         <DropdownMenuLabel>
           <p>Мой аккаунт</p>
           <p className="text-xs text-muted-foreground overflow-hidden text-ellipsis">
-            {session.data?.user.name}
+            {session.data?.user?.name ?? ""}
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

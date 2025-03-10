@@ -1,17 +1,11 @@
 import "next-auth";
+import { SessionEntity, UserEntity } from "./domain/types";
 
 declare module "next-auth" {
   interface Session {
-    user: {
-      name?: string;
-      email: string;
-      image?: string;
-    };
+    user: SessionEntity["user"];
   }
-  interface User {
-    id: string;
-    email: string;
-    image?: string;
-    name?: string;
-  }
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface User extends UserEntity {}
 }
