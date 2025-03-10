@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { AuthorizedGuard } from "@/features/auth";
 import { Header } from "@/widgets/header";
 
 export default function Layout({
@@ -10,7 +11,7 @@ export default function Layout({
   return (
     <>
       <Header variant="private" />
-      {children}
+      <AuthorizedGuard> {children}</AuthorizedGuard>
     </>
   );
 }
