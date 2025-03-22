@@ -3,4 +3,5 @@ import { getServerSession } from "next-auth";
 
 import { nextAuthConfig } from "./next-auth-config";
 
-export const useAppSessionServer = () => getServerSession(nextAuthConfig);
+export const useAppSessionServer = async () =>
+  await getServerSession(nextAuthConfig);

@@ -13,4 +13,3 @@ const parsePrivateEnvSchema = z.object({
 });
 
 export const privateEnv = parsePrivateEnvSchema.parse(process?.env);
-console.log("🚀 ~ privateEnv:", privateEnv);

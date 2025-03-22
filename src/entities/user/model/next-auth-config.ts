@@ -17,6 +17,17 @@ export const nextAuthConfig: AuthOptions = {
       return createUserUseCases.exec(user);
     },
   } as AuthOptions["adapter"],
+  logger: {
+    error(code, metadata) {
+      console.error("NextAuth Error:", code, metadata);
+    },
+    warn(code) {
+      console.warn("NextAuth Warning:", code);
+    },
+    debug(code, metadata) {
+      console.debug("NextAuth Debug:", code, metadata);
+    },
+  },
   callbacks: {
     session: ({ session, user }) => {
       return {
