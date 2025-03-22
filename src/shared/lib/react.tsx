@@ -9,4 +9,3 @@ export function useStrictContext<T>(context: Context<T | null>) {
 export function createStrictContext<T>() {
   return createContext<T | null>(null);
 }
-
