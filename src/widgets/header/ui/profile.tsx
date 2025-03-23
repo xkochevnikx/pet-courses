@@ -1,11 +1,9 @@
 "use client";
-import { AvatarImage } from "@radix-ui/react-avatar";
 import { LogOut, User } from "lucide-react";
 import Link from "next/link";
 
-import { useAppSessionClient } from "@/entities/user";
+import { ProfileAvatar, useAppSessionClient } from "@/entities/user";
 import { SignInButton, useSignOut } from "@/features/auth";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +28,9 @@ export function Profile() {
   if (session.status === "unauthenticated") {
     return <SignInButton />;
   }
+
+  const user = session?.data?.user;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -37,10 +38,7 @@ export function Profile() {
           variant="ghost"
           className="p-px rounded-full self-center h-8 w-8"
         >
-          <Avatar>
-            <AvatarImage src={session?.data?.user?.image ?? ""} />
-            <AvatarFallback>AC</AvatarFallback>
-          </Avatar>
+          <ProfileAvatar profile={user} className="w-8 h-8" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 mr-2 ">

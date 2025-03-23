@@ -24,3 +24,9 @@ export type SessionEntity = {
   };
   expires: string;
 };
+
+export type Profile = {
+  email: string;
+  name?: string | null;
+  image?: string | null;
+};
