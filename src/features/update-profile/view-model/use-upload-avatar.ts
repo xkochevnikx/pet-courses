@@ -21,7 +21,7 @@ export const useUploadAvatar = ({
 
   const handleFileSelect = async () => {
     const file = await selectFile("image/*");
-    console.log("🚀 ~ handleFileSelect ~ file:", file);
+    console.warn("🚀 ~ handleFileSelect ~ file:", file);
     if (!file) return;
     if (!validateFileSize(file, AVATAR_MAX_SIZE)) {
       return onError?.("big-size");
