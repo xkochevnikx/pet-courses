@@ -21,6 +21,7 @@ export const uploadAvatarAction = async (formData: FormData) => {
   }
 
   const storedFile = await fileStorage.uploadImage(file, AVATAR_FILE_KEY);
+  console.log("🚀 ~ uploadAvatarAction ~ storedFile:", storedFile);
 
   return resultSchema.parse({ avatar: storedFile });
 };
