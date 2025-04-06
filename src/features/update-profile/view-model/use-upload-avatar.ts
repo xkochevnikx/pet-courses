@@ -6,7 +6,7 @@ import { uploadAvatarAction } from "../actions/upload-avatar-action";
 import { AVATAR_FILE_KEY, AVATAR_MAX_SIZE } from "../constants";
 
 export const useUploadAvatar = ({
-  // onSuccess,
+  onSuccess,
   onError,
 }: {
   onSuccess: (value: string) => void;
@@ -14,8 +14,8 @@ export const useUploadAvatar = ({
 }) => {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: uploadAvatarAction,
-    onSuccess() {
-      // onSuccess?.();
+    onSuccess(data) {
+      onSuccess?.(data.avatar.path);
     },
   });
 

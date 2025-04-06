@@ -89,7 +89,7 @@ export const UpdateForm = ({
         />
         <FormField
           control={form.control}
-          name="name"
+          name="image"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Аватар</FormLabel>
