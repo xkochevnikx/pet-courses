@@ -44,7 +44,6 @@ class FileStorage {
       partSize: 1024 * 1024 * 5, // optional size of each part, in bytes, at least 5MB
       leavePartsOnError: false, // optional manually handle dropped parts
     }).done();
-    console.warn("🚀 ~ FileStorage ~ upload ~ res:", res);
 
     return {
       id: createAppId(),

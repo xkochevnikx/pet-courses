@@ -16,13 +16,11 @@ const resultSchema = z.object({
 
 export const uploadAvatarAction = async (formData: FormData) => {
   const file = formData.get(AVATAR_FILE_KEY);
-  console.warn("🚀 ~ uploadAvatarAction ~ file:", file);
   if (!(file instanceof File)) {
     throw new BadRequest();
   }
 
   const storedFile = await fileStorage.uploadImage(file, AVATAR_FILE_KEY);
-  console.warn("🚀 ~ uploadAvatarAction ~ storedFile:", storedFile);
 
   return resultSchema.parse({ avatar: storedFile });
 };
