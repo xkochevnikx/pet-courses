@@ -16,16 +16,12 @@ export default function GlobalError({
     console.error("GlobalError catch", error);
   }, []);
   return (
-    <html>
-      <body>
-        <div className="m-4 p-3 bg-red-100 border border-red-400 rounded">
-          <h1 className="text-red-600 text-lg font-bold">Произошла ошибка!</h1>
-          <p className="text-red-500">{error.message}</p>
-          <Button onClick={() => reset()} className="mt-2">
-            Попробовать снова
-          </Button>
-        </div>
-      </body>
-    </html>
+    <div className="m-4 p-3 bg-red-100 border border-red-400 rounded">
+      <h1 className="text-red-600 text-lg font-bold">Произошла ошибка!</h1>
+      <p className="text-red-500">{error.message}</p>
+      <Button onClick={() => reset()} className="mt-2">
+        Попробовать снова
+      </Button>
+    </div>
   );
 }

@@ -97,6 +97,7 @@ const eslintConfig = [
 
       "react/react-in-jsx-scope": "off", // 🔥 Отключаем, так как с React 17+ не нужен `import React`
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      "react-hooks/rules-of-hooks": "warn",
 
       // 📌 **Настройки для архитектурных границ (Boundaries)**
       "boundaries/entry-point": [

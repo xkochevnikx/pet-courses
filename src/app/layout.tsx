@@ -1,7 +1,7 @@
 import { Roboto_Mono, Smooch_Sans } from "next/font/google";
 import { ReactNode } from "react";
 
-import { useAppSessionServer } from "@/entities/user/server-index";
+import { getAppSessionStrictServer } from "@/entities/user/server-index";
 import { cn } from "@/shared/lib/utils";
 
 import { AppProvider } from "./providers/app-provider";
@@ -28,8 +28,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const session = await useAppSessionServer();
+  const session = await getAppSessionStrictServer();
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(roboto.className, testFonts.variable, "antialiased")}>
