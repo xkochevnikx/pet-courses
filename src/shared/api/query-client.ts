@@ -5,7 +5,13 @@ import {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 0,
+    },
+  },
+});
 
 export const useAppQuery = <
   TQueryFnData = unknown,
