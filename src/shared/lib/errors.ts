@@ -14,3 +14,22 @@ export class BadRequest extends Error {
     super(message);
   }
 }
+
+export class ParsingError extends Error {
+  constructor(
+    public surse: string,
+    message = "ParsingError",
+    cause?: unknown,
+  ) {
+    super(message, { cause });
+  }
+}
+
+export class ValidationError extends Error {
+  constructor(
+    public errors: unknown[],
+    message = "ValidationError",
+  ) {
+    super(message);
+  }
+}
