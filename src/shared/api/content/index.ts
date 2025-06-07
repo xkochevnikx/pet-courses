@@ -1,4 +1,4 @@
-import { privateEnv } from "@/shared/lib/parse-private-env";
+import { privateEnv } from "@/shared/lib/env/parse-private-env";
 
 import { queryClient } from "../query-client";
 

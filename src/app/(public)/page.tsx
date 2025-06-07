@@ -1,11 +1,11 @@
-import { CoursesList } from "@/features/courses-list";
+import { CoursesListServer } from "@/features/courses-list/server-index";
 
 export default async function Home() {
   return (
     <>
       <h1 className="text-orange-700">Deploy test!</h1>
 
-      <CoursesList className="max-w-[300px] mb-10 p-4" />
+      <CoursesListServer className="max-w-[600px] mb-10 p-4" />
     </>
   );
 }

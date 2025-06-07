@@ -1,7 +1,8 @@
+import { SessionEntity, UserId } from "@/kernel/domain/types";
 import { AuthorizationError } from "@/shared/lib/errors";
 
 import { createProfileAbility } from "../domain/ability";
-import { Profile, SessionEntity, UserId } from "../domain/types";
+import { Profile } from "../domain/types";
 import { profileRepository } from "../repository/profile";
 
 type UpdateProfile = {
@@ -10,7 +11,7 @@ type UpdateProfile = {
   data: Partial<Profile>;
 };
 
-export class UpdateProfileUseCases {
+export class UpdateProfileService {
   async exec({ userId, session, data }: UpdateProfile): Promise<Profile> {
     const profileAbility = createProfileAbility(session);
 
@@ -22,4 +23,4 @@ export class UpdateProfileUseCases {
   }
 }
 
-export const updateProfileUseCases = new UpdateProfileUseCases();
+export const updateProfileService = new UpdateProfileService();

@@ -3,7 +3,7 @@ import * as path from "path";
 
 import { compileFromFile } from "json-schema-to-typescript";
 
-import { privateEnv } from "../src/shared/lib/parse-private-env";
+import { privateEnv } from "../src/shared/lib/env/parse-private-env";
 
 // Функция для скачивания и сохранения файла
 async function downloadFile(url: string, outputPath: string): Promise<void> {

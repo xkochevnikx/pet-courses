@@ -3,8 +3,8 @@ import { File } from "node:buffer";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 
+import { privateEnv } from "./env/parse-private-env";
 import { createAppId } from "./ids";
-import { privateEnv } from "./parse-private-env";
 
 export type StoredFile = {
   id: string;

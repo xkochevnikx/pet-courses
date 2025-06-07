@@ -4,9 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Profile, UserId } from "@/entities/user";
+import { Profile } from "@/entities/user";
 import { getDefaultValues } from "@/features/update-profile/model/domain";
 import { profileFormSchema } from "@/features/update-profile/model/schema";
+import { UserId } from "@/kernel/domain/types";
 import { Button } from "@/shared/ui/button";
 import {
   Form,

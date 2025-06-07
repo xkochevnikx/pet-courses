@@ -6,6 +6,7 @@ import { Card, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export const CourseItem = ({ course }: { course: CourseEntity }) => {
   const ComponentDescription = useMdxComponent(course.description);
+
   return (
     <Card>
       <CardHeader>

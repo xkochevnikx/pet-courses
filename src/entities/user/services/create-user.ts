@@ -1,7 +1,7 @@
+import { ROLES } from "@/kernel/domain/types";
+import { privateEnv } from "@/shared/lib/env/parse-private-env";
 import { createAppId } from "@/shared/lib/ids";
-import { privateEnv } from "@/shared/lib/parse-private-env";
 
-import { ROLES } from "../domain/types";
 import { userRepository } from "../repository/user";
 
 export type CreateUser = {
@@ -11,7 +11,7 @@ export type CreateUser = {
   emailVerified?: Date | null;
 };
 
-class CreateUserUseCases {
+class CreateUserService {
   async exec(data: CreateUser) {
     const adminEmails = privateEnv.ADMIN_EMAILS?.split(",") ?? [];
     const role = adminEmails.includes(data?.email) ? ROLES.ADMIN : ROLES.USER;
@@ -25,4 +25,4 @@ class CreateUserUseCases {
   }
 }
 
-export const createUserUseCases = new CreateUserUseCases();
+export const createUserService = new CreateUserService();

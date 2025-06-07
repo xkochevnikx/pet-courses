@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["reflect-metadata"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -14,6 +15,7 @@
     "jsx": "preserve",
     "incremental": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "plugins": [
       {
         "name": "next"

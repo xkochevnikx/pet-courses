@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 
+import { UserId } from "@/kernel/domain/types";
+
 import { getUserProfileAction } from "../action/get-user-profile";
-import { UserId } from "../domain/types";
 
 const baseKey = "user";
 
