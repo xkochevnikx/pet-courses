@@ -1,7 +1,7 @@
+import { SessionEntity, UserEntity, UserId } from "@/kernel/domain/types";
 import { AuthorizationError } from "@/shared/lib/errors";
 
 import { createUserAbility } from "../domain/ability";
-import { SessionEntity, UserEntity, UserId } from "../domain/types";
 import { userRepository } from "../repository/user";
 
 type GetUser = {
@@ -9,7 +9,7 @@ type GetUser = {
   session: SessionEntity;
 };
 
-export class GetUserUseCase {
+export class GetUserService {
   async exec({ userId, session }: GetUser): Promise<UserEntity> {
     const userAbility = createUserAbility(session);
 
@@ -21,4 +21,4 @@ export class GetUserUseCase {
   }
 }
 
-export const getUserUseCase = new GetUserUseCase();
+export const getUserService = new GetUserService();

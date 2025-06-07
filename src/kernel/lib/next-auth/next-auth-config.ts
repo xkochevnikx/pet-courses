@@ -3,18 +3,28 @@ import { AuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import GithubProvider from "next-auth/providers/github";
 
+import { CreateUser } from "@/entities/user/services/create-user";
+import { ROLES, UserEntity } from "@/kernel/domain/types";
 import { dbClient } from "@/shared/lib/db";
-import { privateEnv } from "@/shared/lib/parse-private-env";
-
-import { CreateUser, createUserUseCases } from "../use-cases/create-user";
+import { privateEnv } from "@/shared/lib/env/parse-private-env";
+import { createAppId } from "@/shared/lib/ids";
 
 const prismaAdapter = PrismaAdapter(dbClient);
 
 export const nextAuthConfig: AuthOptions = {
   adapter: {
     ...prismaAdapter,
-    createUser: (user: CreateUser) => {
-      return createUserUseCases.exec(user);
+    createUser: async (user: CreateUser) => {
+      const adminEmails = privateEnv.ADMIN_EMAILS?.split(",") ?? [];
+      const role = adminEmails.includes(user?.email) ? ROLES.ADMIN : ROLES.USER;
+
+      const userCreated: UserEntity = {
+        ...user,
+        role: role as "ADMIN" | "USER",
+        id: createAppId(),
+      };
+
+      return await dbClient.user.create({ data: userCreated });
     },
   } as AuthOptions["adapter"],
   logger: {

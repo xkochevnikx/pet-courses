@@ -1,6 +1,5 @@
+import { UserEntity, UserId } from "@/kernel/domain/types";
 import { dbClient } from "@/shared/lib/db";
-
-import { UserEntity, UserId } from "../domain/types";
 
 class UserRepository {
   async createUser(user: UserEntity): Promise<UserEntity> {

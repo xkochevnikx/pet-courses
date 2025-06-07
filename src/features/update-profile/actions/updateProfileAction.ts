@@ -5,7 +5,7 @@ import { z } from "zod";
 import {
   getAppSessionStrictServer,
   profileSchema,
-  updateProfileUseCases,
+  updateProfileService,
 } from "@/entities/user/server-index";
 
 const propsSchema = z.object({
@@ -24,7 +24,7 @@ export const updateProfileAction = async (
 
   const session = await getAppSessionStrictServer();
 
-  const user = await updateProfileUseCases.exec({ session, data, userId });
+  const user = await updateProfileService.exec({ session, data, userId });
 
   return resultSchema.parse({ profile: user });
 };

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { profileSchema } from "../domain/schema";
 import { getAppSessionStrictServer } from "../server-index";
-import { getUserUseCase } from "../use-cases/get-user";
+import { getUserService } from "../services/get-user";
 
 const propsSchema = z.object({
   userId: z.string(),
@@ -22,7 +22,7 @@ export const getUserProfileAction = async (
   const session = await getAppSessionStrictServer();
 
   if (session !== null) {
-    const user = await getUserUseCase.exec({ session, userId });
+    const user = await getUserService.exec({ session, userId });
 
     return resultSchema.parse({ profile: user });
   }

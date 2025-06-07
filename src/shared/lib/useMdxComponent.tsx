@@ -17,7 +17,7 @@ const variants = cva("prose dark:prose-invert prose-slate", {
 
 export const useMdxComponent = (code: string) => {
   return useMemo(() => {
-    const Component = getMDXComponent(code);
+    const Component = getMDXComponent(code, {});
 
     return function MdxComponent({
       className,
