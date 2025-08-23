@@ -7,22 +7,19 @@ import { useUploadAvatar } from "../view-model/use-upload-avatar";
 export const AvatarField = ({
   value,
   onChange,
-  onError,
 }: {
   value?: string;
   onChange: (value: string) => void;
-  onError: (desc: string) => void;
 }) => {
   const session = useAppSessionClient();
   const { handleFileSelect, isPending } = useUploadAvatar({
     onSuccess: onChange,
-    onError,
   });
   return (
     <Button
       variant="ghost"
       type="button"
-      onClick={handleFileSelect}
+      onClick={() => handleFileSelect(session?.data?.user.id ?? "")}
       className="w-[64px] h-[64px] p-0.5 rounded-full relative block"
     >
       {isPending && (

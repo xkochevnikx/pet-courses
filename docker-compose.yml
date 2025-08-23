@@ -1,28 +1,38 @@
-version: "3"
-
 services:
   db:
-    image: postgres
-    restart: always
+    build:
+      context: ./docker/db
+      dockerfile: Dockerfile
+    image: local/postgres:17-alpine # так назовём наш локальный образ
+    container_name: db
     ports:
-      - 5432:5432
+      - "5432:5432" # доступ с хоста на 5432
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
 
   minio:
-    image: minio/minio:latest
-    entrypoint: sh
+    build:
+      context: ./docker/minio
+      dockerfile: Dockerfile
+    image: local/minio:latest
+    container_name: minio
+    command: server --console-address ":9001" /data
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: -c 'minio server --console-address ":9001" /data'
+      - "9000:9000" # API
+      - "9001:9001" # веб-консоль
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio-data:/data
     healthcheck:
@@ -30,24 +40,26 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    restart: always
 
   createbuckets:
-    image: minio/mc
+    build:
+      context: ./docker/mc
+      dockerfile: Dockerfile
+    image: local/minio-mc:latest
+    container_name: minio-init
     depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-        echo 'Waiting for MinIO to be ready...';
-        until /usr/bin/mc alias set myminio http://minio:9000 minio minio123 2>/dev/null; do
-          sleep 1;
-        done;
-
-        echo 'MinIO is up, creating bucket...';
-        /usr/bin/mc mb myminio/images || echo 'Bucket already exists';
-        /usr/bin/mc anonymous set public myminio/images;
-        exit 0;
-      "
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_HOST: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BUCKET_NAME: images
+    restart: "no"
 
 volumes:
   db-data:
+    name: pet-courses-project_db-data
   minio-data:
+    name: pet-courses-project_minio-data

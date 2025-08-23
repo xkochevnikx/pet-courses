@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 
-import { nextAuthConfig } from "@/kernel/lib/next-auth/next-auth-config";
+import { initialInversify } from "@/app/initInversifyContainer";
+import { NextAuthConfig } from "@/shared/types/abstract-classes";
 
-const authHandler = NextAuth(nextAuthConfig);
+const authHandler = NextAuth(initialInversify.get(NextAuthConfig).options);
 
 export { authHandler as GET, authHandler as POST };

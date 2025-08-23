@@ -1,26 +1,25 @@
-import { SessionEntity, UserId } from "@/kernel/domain/types";
-import { AuthorizationError } from "@/shared/lib/errors";
+import { injectable } from "inversify";
 
-import { createProfileAbility } from "../domain/ability";
-import { Profile } from "../domain/types";
-import { profileRepository } from "../repository/profile";
+import { StoredFile } from "@/shared/lib/file-storage";
+import {
+  ProfileRepository,
+  UpdateProfileService,
+} from "@/shared/types/abstract-classes";
+import {
+  Profile,
+  UpdateProfile,
+  UploadBlob,
+} from "@/shared/types/domain-types";
 
-type UpdateProfile = {
-  userId: UserId;
-  session: SessionEntity | null;
-  data: Partial<Profile>;
-};
-
-export class UpdateProfileService {
-  async exec({ userId, session, data }: UpdateProfile): Promise<Profile> {
-    const profileAbility = createProfileAbility(session);
-
-    if (!profileAbility.canUpdateProfile(userId)) {
-      throw new AuthorizationError();
-    }
-
-    return await profileRepository.update(userId, data);
+@injectable()
+export class UpdateProfileServiceImp extends UpdateProfileService {
+  constructor(private profileRepository: ProfileRepository) {
+    super();
+  }
+  async exec({ userId, data }: UpdateProfile): Promise<Profile> {
+    return await this.profileRepository.update(userId, data);
+  }
+  async uploadAvatar(file: UploadBlob, tag: string): Promise<StoredFile> {
+    return await this.profileRepository.uploadAvatarMethod(file, tag);
   }
 }
-
-export const updateProfileService = new UpdateProfileService();

@@ -1,8 +1,8 @@
 // get-profile-letters.test.ts
 
-import { getProfileLetters } from "./get-profile-letters";
+import { Profile } from "@/shared/types/domain-types";
 
-import type { Profile } from "../domain/types";
+import { getProfileLetters } from "./get-profile-letters";
 
 // Мок для профиля
 const makeProfile = (partial: Partial<Profile>): Profile => ({

@@ -1,4 +1,4 @@
-import { Profile } from "@/entities/user";
+import { Profile } from "@/shared/types/domain-types";
 
 export const getDefaultValues = (profile: Profile) => ({
   email: profile?.email,

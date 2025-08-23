@@ -1,8 +1,8 @@
-import { createApi, createHttpServerApi } from "@/kernel/lib/trpc/client";
+import { createApi, createHttpServerApi } from "@/shared/lib/trpc/client";
 
 import { CoursesListController } from "./controller";
 
-export const coursesListApi = createApi<CoursesListController>();
+export const coursesListApi = createApi<CoursesListController["router"]>();
 
 export const coursesListApiServer =
-  createHttpServerApi<CoursesListController>();
+  createHttpServerApi<CoursesListController["router"]>();

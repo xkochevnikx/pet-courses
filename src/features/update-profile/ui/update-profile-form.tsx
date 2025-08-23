@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 
-import { getProfileQuery } from "@/entities/user";
-import { useAppQuery } from "@/shared/api/query-client";
 import { Spinner } from "@/shared/ui/spinner";
+
+import { updateProfileApi } from "../api";
 
 import { UpdateForm } from "./update-form";
 
@@ -17,10 +17,7 @@ export const UpdateProfileForm = ({
 }) => {
   const router = useRouter();
 
-  const profile = useAppQuery({
-    ...getProfileQuery(userId),
-    retry: 0,
-  });
+  const profile = updateProfileApi.updateProfile.get.useQuery({ userId });
 
   const handleSuccess = () => {
     if (callbackUrl) {
@@ -42,7 +39,7 @@ export const UpdateProfileForm = ({
 
   return (
     <UpdateForm
-      profile={profile.data.profile}
+      profile={profile.data}
       onSuccess={handleSuccess}
       userId={userId}
       submitText={callbackUrl ? "Продожить" : "Сохранить"}

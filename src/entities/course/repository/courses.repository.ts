@@ -1,11 +1,14 @@
+import { injectable } from "inversify";
+
 import { contentApi } from "@/shared/api/content";
 import { CourseSlug } from "@/shared/api/content/lib/types";
 import { CompileMdx } from "@/shared/lib/compileMDX";
 import { logger } from "@/shared/lib/logger/pino-config";
+import { CoursesRepository } from "@/shared/types/abstract-classes";
+import { CourseEntity } from "@/shared/types/domain-types";
 
-import { CourseEntity } from "../domain/types";
-
-class CoursesRepository {
+@injectable()
+export class CoursesRepositoryImp extends CoursesRepository {
   getCoursesList = async (): Promise<CourseEntity[]> => {
     const manifest = await contentApi.fetchManifest();
 
@@ -49,5 +52,3 @@ class CoursesRepository {
       });
   };
 }
-
-export const coursesRepository = new CoursesRepository();
