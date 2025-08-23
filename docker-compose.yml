@@ -57,6 +57,37 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       BUCKET_NAME: images
     restart: "no"
+  web:
+    build:
+      context: . # проект в КОРНЕ
+      dockerfile: Dockerfile
+    image: local/next-app:latest
+    container_name: web
+    env_file: .env
+    environment:
+      # ВНУТРИ docker-сети база по хосту 'db', не 'localhost'
+      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+
+      # NextAuth и пр.
+      NEXTAUTH_URL: http://localhost:3000
+      # NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+
+      # Для rewrite до MinIO (публичный бакет)
+      S3_PUBLIC_URL: http://localhost:9000/images
+
+      # Если используешь SDK к MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
 volumes:
   db-data:
