@@ -4,10 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Profile } from "@/entities/user";
 import { getDefaultValues } from "@/features/update-profile/model/domain";
-import { profileFormSchema } from "@/features/update-profile/model/schema";
-import { UserId } from "@/kernel/domain/types";
+import { Profile, UserId } from "@/shared/types/domain-types";
 import { Button } from "@/shared/ui/button";
 import {
   Form,
@@ -20,6 +18,7 @@ import {
 import { Input } from "@/shared/ui/input";
 import { Spinner } from "@/shared/ui/spinner";
 
+import { profileFormSchema } from "../model/schema";
 import { useUpdateProfile } from "../view-model/use-update-profile";
 
 import { AvatarField } from "./avatar-field";
@@ -48,10 +47,8 @@ export const UpdateForm = ({
       data,
     });
 
-    if (updatedProfile?.profile) {
-      form.reset(getDefaultValues(updatedProfile?.profile));
-      onSuccess?.();
-    }
+    form.reset(getDefaultValues(updatedProfile));
+    onSuccess?.();
   });
 
   return (
@@ -95,11 +92,7 @@ export const UpdateForm = ({
             <FormItem>
               <FormLabel>Аватар</FormLabel>
               <FormControl>
-                <AvatarField
-                  onChange={field.onChange}
-                  value={field.value}
-                  onError={() => {}}
-                />
+                <AvatarField onChange={field.onChange} value={field.value} />
               </FormControl>
               <FormMessage />
             </FormItem>

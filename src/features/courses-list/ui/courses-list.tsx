@@ -2,8 +2,8 @@
 
 import React from "react";
 
-import { CourseEntity } from "@/entities/course";
 import { cn } from "@/shared/lib/utils";
+import { CourseEntity } from "@/shared/types/domain-types";
 
 import { coursesListApi } from "../api";
 

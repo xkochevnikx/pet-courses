@@ -1,4 +1,4 @@
-import { ROLES, SessionEntity, UserId } from "@/kernel/domain/types";
+import { ROLES, SessionEntity, UserId } from "@/shared/types/domain-types";
 
 export const createUserAbility = (session: SessionEntity) => ({
   canGetUser: (id: UserId) => {

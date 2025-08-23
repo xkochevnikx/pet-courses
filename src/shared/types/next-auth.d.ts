@@ -1,5 +1,5 @@
-import { SessionEntity, UserEntity } from "@/kernel/domain/types";
 import "next-auth";
+import { SessionEntity, UserEntity } from "./domain-types";
 
 declare module "next-auth" {
   interface Session {

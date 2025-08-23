@@ -14,7 +14,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("GlobalError catch", error);
-  }, []);
+  }, [error]);
   return (
     <div className="m-4 p-3 bg-red-100 border border-red-400 rounded">
       <h1 className="text-red-600 text-lg font-bold">Произошла ошибка!</h1>

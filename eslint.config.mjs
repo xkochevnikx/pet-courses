@@ -144,6 +144,17 @@ const eslintConfig = [
                 [
                   "shared",
                   {
+                    segment: "types",
+                  },
+                ],
+              ],
+              allow: "**",
+            },
+            {
+              target: [
+                [
+                  "shared",
+                  {
                     segment: "api",
                   },
                 ],

@@ -1,7 +1,7 @@
 import { cn } from "@/shared/lib/utils";
+import { Profile } from "@/shared/types/domain-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 
-import { Profile } from "../domain/types";
 import { getProfileLetters } from "../view-model/get-profile-letters";
 
 export const ProfileAvatar = ({

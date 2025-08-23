@@ -1,10 +1,17 @@
-import { CourseEntity } from "../domain/types";
-import { coursesRepository } from "../repository/courses.repository";
+import { injectable } from "inversify";
 
-export class GetCoursesListService {
+import {
+  CoursesRepository,
+  GetCoursesListService,
+} from "@/shared/types/abstract-classes";
+import { CourseEntity } from "@/shared/types/domain-types";
+
+@injectable()
+export class GetCoursesListServiceImp extends GetCoursesListService {
+  constructor(private coursesRepository: CoursesRepository) {
+    super();
+  }
   async exec(): Promise<CourseEntity[]> {
-    return await coursesRepository.getCoursesList();
+    return await this.coursesRepository.getCoursesList();
   }
 }
-
-export const getCoursesListService = new GetCoursesListService();

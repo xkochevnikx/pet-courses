@@ -1,8 +1,11 @@
-import { File } from "node:buffer";
-
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import { ContainerModule, injectable } from "inversify";
 
+import { FileStorage } from "../types/abstract-classes";
+import { UploadBlob } from "../types/domain-types";
+
+import { AVATAR_MAX_SIZE } from "./constants";
 import { privateEnv } from "./env/parse-private-env";
 import { createAppId } from "./ids";
 
@@ -15,7 +18,8 @@ export type StoredFile = {
   eTag?: string;
 };
 
-class FileStorage {
+@injectable()
+export class FileStorageImp extends FileStorage {
   private s3Client = new S3Client({
     forcePathStyle: true,
     endpoint: privateEnv.S3_ENDPOINT,
@@ -26,22 +30,25 @@ class FileStorage {
     },
   });
 
-  async uploadImage(file: File, tag: string) {
+  async uploadAvatar(file: UploadBlob, tag: string) {
     return this.upload(file, privateEnv.S3_IMAGES_BUCKET, tag);
   }
 
-  async upload(file: File, bucket: string, tag: string): Promise<StoredFile> {
+  async upload(
+    file: UploadBlob,
+    bucket: string,
+    tag: string,
+  ): Promise<StoredFile> {
     const res = await new Upload({
       client: this.s3Client,
       params: {
         ACL: "public-read",
         Bucket: bucket,
         Key: `${tag}-${Date.now().toString()}-${file.name}`,
-        // @ts-expect-error: Node.js File is not compatible with Upload Body (expects Blob/Buffer)
-        Body: file,
+        Body: Buffer.from(file.bytes),
       },
       queueSize: 4, // optional concurrency configuration
-      partSize: 1024 * 1024 * 5, // optional size of each part, in bytes, at least 5MB
+      partSize: AVATAR_MAX_SIZE, // optional size of each part, in bytes, at least 5MB
       leavePartsOnError: false, // optional manually handle dropped parts
     }).done();
 
@@ -56,4 +63,6 @@ class FileStorage {
   }
 }
 
-export const fileStorage = new FileStorage();
+export const FileStorageModule = new ContainerModule((bind) => {
+  bind(FileStorage).to(FileStorageImp);
+});

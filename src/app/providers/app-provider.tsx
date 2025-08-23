@@ -1,7 +1,6 @@
 "use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Session } from "next-auth";
 import { ReactNode } from "react";
 
 import { SessionProvider } from "@/entities/user";
@@ -10,17 +9,11 @@ import { queryClient } from "@/shared/api/query-client";
 
 import { TrpcProvider } from "./trpc-provider";
 
-export const AppProvider = ({
-  children,
-  session,
-}: {
-  children: ReactNode;
-  session: Session | null;
-}) => {
+export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <TrpcProvider client={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider session={session}>
+        <SessionProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
