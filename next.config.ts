@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   rewrites: async () => [
     {
       source: "/storage/:path*",
-      destination: `${process.env.S3_ENDPOINT}/:path*`,
+      destination: `${process.env.MINIO_INTERNAL_BASE}/:path*`,
     },
   ],
 };

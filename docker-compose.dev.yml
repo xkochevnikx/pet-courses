@@ -3,24 +3,42 @@ services:
     image: node:20-alpine
     container_name: web-dev
     working_dir: /app
-
     volumes:
       - ./:/app
-      - /app/node_modules # чтобы не перетирать node_modules контейнера
-
-    command: sh -lc "npm ci && npm run dev"
-
+      - /app/node_modules
+    command: >
+      sh -lc "
+        echo '[web-dev] Prisma migrate...';
+        npx prisma migrate deploy || npx prisma db push;
+        echo '[web-dev] npm install (mount volume)...';
+        npm install --no-audit --no-fund;
+        echo '[web-dev] start dev server';
+        npm run dev
+      "
     env_file: .env
     environment:
+      # Внутри docker-сети база по хосту 'db'
       DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
-      NEXTAUTH_URL: http://localhost:3000
+
+      # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
+      S3_BUCKET: ${S3_BUCKET:-images}
+
+      # Публичная база для ссылок из браузера
       S3_PUBLIC_URL: http://localhost:9000/images
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      # Внутренний базовый URL (для rewrite /storage/* → MinIO с именем бакета)
+      MINIO_INTERNAL_BASE: http://minio:9000/images
+
+      # NextAuth и прочее
+      NEXTAUTH_URL: http://localhost:3000
+      PORT: 3000
+
+      # Hot reload в Docker на Mac/Windows
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
-
     ports:
       - "3000:3000"
     depends_on:
@@ -28,3 +46,5 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully

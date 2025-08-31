@@ -1,93 +1,63 @@
 services:
   db:
-    build:
-      context: ./docker/db
-      dockerfile: Dockerfile
-    image: local/postgres:17-alpine # так назовём наш локальный образ
+    image: postgres:17-alpine
     container_name: db
     ports:
-      - "5432:5432" # доступ с хоста на 5432
+      - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
 
   minio:
-    build:
-      context: ./docker/minio
-      dockerfile: Dockerfile
-    image: local/minio:latest
+    image: minio/minio:latest
     container_name: minio
-    command: server --console-address ":9001" /data
+    entrypoint: sh
+    command: -c 'minio server --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     ports:
       - "9000:9000" # API
-      - "9001:9001" # веб-консоль
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      - "9001:9001" # Web-консоль
     volumes:
       - minio-data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: always
 
   createbuckets:
-    build:
-      context: ./docker/mc
-      dockerfile: Dockerfile
-    image: local/minio-mc:latest
+    image: minio/mc:latest
     container_name: minio-init
     depends_on:
       minio:
         condition: service_healthy
     environment:
-      MINIO_HOST: http://minio:9000
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      BUCKET_NAME: images
+      # alias через переменную окружения — самый простой способ
+      MC_HOST_myminio: "http://${MINIO_ROOT_USER:-minio}:${MINIO_ROOT_PASSWORD:-minio123}@minio:9000"
+      S3_BUCKET: ${S3_BUCKET:-images}
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      - >
+        set -euo pipefail;
+        echo "S3_BUCKET=${S3_BUCKET:-images}";
+        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+        mc mb -p myminio/${S3_BUCKET:-images} || true;
+        mc anonymous set download myminio/${S3_BUCKET:-images} ||
+        mc anonymous set public  myminio/${S3_BUCKET:-images} || true;
+        echo "Buckets now:"; mc ls myminio
     restart: "no"
-  web:
-    build:
-      context: . # проект в КОРНЕ
-      dockerfile: Dockerfile
-    image: local/next-app:latest
-    container_name: web
-    env_file: .env
-    environment:
-      # ВНУТРИ docker-сети база по хосту 'db', не 'localhost'
-      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
-
-      # NextAuth и пр.
-      NEXTAUTH_URL: http://localhost:3000
-      # NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-
-      # Для rewrite до MinIO (публичный бакет)
-      S3_PUBLIC_URL: http://localhost:9000/images
-
-      # Если используешь SDK к MinIO
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-
-      PORT: 3000
-    ports:
-      - "3000:3000"
-    depends_on:
-      db:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
 
 volumes:
   db-data:

@@ -1,21 +1,17 @@
-// import { server } from "@/app/init";
-// import { SessionServer } from "@/entities/user/server-index";
+import { redirect } from "next/navigation";
+
+import { initialInversify } from "@/app/initInversifyContainer";
 import { UpdateProfileForm } from "@/features/update-profile";
+import { SessionServer } from "@/shared/types/abstract-classes";
 import { Separator } from "@/shared/ui/separator";
 
-// const getServerSession = server.get(SessionServer);
+const getSession = initialInversify.get(SessionServer);
 
-export default async function NewUserPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ callbackUrl: string }>;
-}) {
-  const params = (await searchParams)?.callbackUrl;
-  // const session = await getServerSession.get();
-
-  // if (!session) {
-  //   return redirect("/auth/sign-in");
-  // }
+export default async function NewUserPage() {
+  const session = await getSession.get();
+  if (!session) {
+    return redirect("/auth/sign-in");
+  }
   return (
     <main className="space-y-6 py-14 container  max-w-[600px]">
       <div>
@@ -25,7 +21,7 @@ export default async function NewUserPage({
         </p>
       </div>
       <Separator />
-      <UpdateProfileForm userId={"1"} callbackUrl={params} />
+      <UpdateProfileForm userId={session?.user.id ?? ""} />
     </main>
   );
 }

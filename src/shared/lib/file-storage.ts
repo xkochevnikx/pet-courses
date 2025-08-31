@@ -31,7 +31,7 @@ export class FileStorageImp extends FileStorage {
   });
 
   async uploadAvatar(file: UploadBlob, tag: string) {
-    return this.upload(file, privateEnv.S3_IMAGES_BUCKET, tag);
+    return this.upload(file, privateEnv.S3_BUCKET, tag);
   }
 
   async upload(
@@ -56,7 +56,7 @@ export class FileStorageImp extends FileStorage {
       id: createAppId(),
       name: file.name,
       type: file.type,
-      path: `/storage/${bucket}/${res.Key}`,
+      path: `/storage/${String(res.Key)}`,
       prefix: "/storage",
       eTag: res.ETag,
     };
