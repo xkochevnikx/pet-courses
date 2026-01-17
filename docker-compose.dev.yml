@@ -8,10 +8,10 @@ services:
       - /app/node_modules
     command: >
       sh -lc "
-        echo '[web-dev] Prisma migrate...';
-        npx prisma migrate deploy || npx prisma db push;
         echo '[web-dev] npm install (mount volume)...';
         npm install --no-audit --no-fund;
+        echo '[web-dev] Prisma migrate...';
+        npx prisma migrate deploy || npx prisma db push;
         echo '[web-dev] start dev server';
         npm run dev
       "
@@ -23,9 +23,9 @@ services:
       # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
-      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
-      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
-      S3_BUCKET: ${S3_BUCKET:-images}
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
 
       # Публичная база для ссылок из браузера
       S3_PUBLIC_URL: http://localhost:9000/images

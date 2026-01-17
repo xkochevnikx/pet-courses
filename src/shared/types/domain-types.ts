@@ -34,7 +34,6 @@ export type SessionEntity = {
 export type CourseEntity = {
   id: string;
   title: string;
-  description: string;
   slug: string;
 };
 

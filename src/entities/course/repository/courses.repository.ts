@@ -2,7 +2,6 @@ import { injectable } from "inversify";
 
 import { contentApi } from "@/shared/api/content";
 import { CourseSlug } from "@/shared/api/content/lib/types";
-import { CompileMdx } from "@/shared/lib/compileMDX";
 import { logger } from "@/shared/lib/logger/pino-config";
 import { CoursesRepository } from "@/shared/types/abstract-classes";
 import { CourseEntity } from "@/shared/types/domain-types";
@@ -18,9 +17,6 @@ export class CoursesRepositoryImp extends CoursesRepository {
       return {
         id: course.id,
         title: course.title,
-        description: await CompileMdx(course.description).then(
-          (result) => result.code,
-        ),
         slug,
       };
     };
