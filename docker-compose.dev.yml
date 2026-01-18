@@ -1,6 +1,6 @@
 services:
   web:
-    image: node:20-alpine
+    image: node:20-bookworm-slim
     container_name: web-dev
     working_dir: /app
     volumes:
@@ -17,9 +17,6 @@ services:
       "
     env_file: .env
     environment:
-      # Внутри docker-сети база по хосту 'db'
-      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
-
       # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
