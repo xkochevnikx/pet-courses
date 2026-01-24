@@ -11,17 +11,24 @@ services:
         set -e;
 
         echo '[web-dev] deps...';
-        test -d node_modules || npm install --no-audit --no-fund;
+        if [ ! -f node_modules/.bin/prisma ]; then
+          echo '[web-dev] installing deps (prisma missing)...';
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund;
+          else
+            npm install --no-audit --no-fund;
+          fi;
+        fi;
 
         echo '[web-dev] Prisma migrate (retry)...';
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if npx prisma migrate deploy; then ok=1; break; fi;
-          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
+          echo \"[web-dev] migrate failed, retry $$i/10 ...\";
           sleep 2;
         done;
 
-        if [ \"$ok\" -ne 1 ]; then
+        if [ \"$$ok\" -ne 1 ]; then
           echo '[web-dev] migrate did not succeed, trying db push...';
           npx prisma db push;
         fi;
