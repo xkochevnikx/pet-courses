@@ -21,15 +21,18 @@ services:
           fi;
         fi;
 
+        echo '[web-dev] prisma generate...';
+        npx prisma generate;
+
         echo '[web-dev] Prisma migrate (retry)...';
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if npx prisma migrate deploy; then ok=1; break; fi;
-          echo \"[web-dev] migrate failed, retry $$i/10 ...\";
+          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
           sleep 2;
         done;
 
-        if [ \"$$ok\" -ne 1 ]; then
+        if [ \"${ok}\" -ne 1 ]; then
           echo '[web-dev] migrate did not succeed, trying db push...';
           npx prisma db push;
         fi;
@@ -39,23 +42,18 @@ services:
       "
     env_file: .env
     environment:
-      # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET}
 
-      # Публичная база для ссылок из браузера
       S3_PUBLIC_URL: http://localhost:9000/images
-      # Внутренний базовый URL (для rewrite /storage/* → MinIO с именем бакета)
       MINIO_INTERNAL_BASE: http://minio:9000/images
 
-      # NextAuth и прочее
       NEXTAUTH_URL: http://localhost:3000
       PORT: 3000
 
-      # Hot reload в Docker на Mac/Windows
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
     ports:
