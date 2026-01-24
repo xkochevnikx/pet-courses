@@ -3,10 +3,16 @@ services:
     image: postgres:17-alpine
     container_name: db
     env_file: .env
+    # ВАЖНО: не светим Postgres наружу. Если прям надо наружу — сделай firewall/allowlist.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
+      - pg-run:/var/run/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
@@ -19,7 +25,8 @@ services:
       retries: 20
     restart: always
 
-  # one-shot: приводит пароль роли в БД к .env даже если volume старый
+  # one-shot: приводит пароль роли в БД к .env ДАЖЕ если volume старый
+  # Делает это через unix-socket (local trust), поэтому не зависит от старого пароля.
   dbfix:
     image: postgres:17-alpine
     container_name: dbfix
@@ -27,23 +34,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - pg-run:/var/run/postgresql
     entrypoint: ["/bin/sh", "-lc"]
     command: >
       set -euo pipefail;
-      echo "[dbfix] wait for db...";
+
+      echo "[dbfix] wait for local socket...";
       for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-        if env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
-          echo "[dbfix] connect ok";
+        if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
+          echo "[dbfix] socket connect ok";
           break;
         fi;
-        echo "[dbfix] connect failed, retry ${i}/15";
+        echo "[dbfix] socket connect failed, retry ${i}/15";
         sleep 2;
       done;
 
-      echo "[dbfix] forcing password for ${POSTGRES_USER}...";
-      # ВАЖНО: пароль экранируем, чтобы спецсимволы не ломали SQL
-      env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -v ON_ERROR_STOP=1 \
-        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")';";
+      echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
+      esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
+      psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${esc_pw}';";
       echo "[dbfix] done";
     restart: "no"
 
@@ -74,6 +84,7 @@ services:
         condition: service_healthy
     environment:
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
+      S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
     command: >
       set -euo pipefail;
@@ -154,3 +165,4 @@ volumes:
     name: pet-courses-project_db-data
   minio-data:
     name: pet-courses-project_minio-data
+  pg-run:
