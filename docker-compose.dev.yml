@@ -8,12 +8,26 @@ services:
       - /app/node_modules
     command: >
       sh -lc "
-        echo '[web-dev] npm install (mount volume)...';
-        npm install --no-audit --no-fund;
-        echo '[web-dev] Prisma migrate...';
-        npx prisma migrate deploy || npx prisma db push;
+        set -e;
+
+        echo '[web-dev] deps...';
+        test -d node_modules || npm install --no-audit --no-fund;
+
+        echo '[web-dev] Prisma migrate (retry)...';
+        ok=0;
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if npx prisma migrate deploy; then ok=1; break; fi;
+          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
+          sleep 2;
+        done;
+
+        if [ \"$ok\" -ne 1 ]; then
+          echo '[web-dev] migrate did not succeed, trying db push...';
+          npx prisma db push;
+        fi;
+
         echo '[web-dev] start dev server';
-        npm run dev
+        exec npm run dev
       "
     env_file: .env
     environment:
