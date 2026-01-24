@@ -5,21 +5,21 @@ services:
     env_file: .env
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
+        ]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
     restart: always
 
-  # one-shot: гарантирует, что пароль юзера в реальной БД == .env (даже на уже существующем volume)
+  # one-shot: приводит пароль роли в БД к .env даже если volume старый
   dbfix:
     image: postgres:17-alpine
     container_name: dbfix
@@ -30,17 +30,20 @@ services:
     entrypoint: ["/bin/sh", "-lc"]
     command: >
       set -euo pipefail;
-      echo "[dbfix] forcing password for ${POSTGRES_USER}...";
-      for i in 1 2 3 4 5 6 7 8 9 10; do
+      echo "[dbfix] wait for db...";
+      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
         if env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
           echo "[dbfix] connect ok";
           break;
         fi;
-        echo "[dbfix] connect failed, retry ${i}/10";
+        echo "[dbfix] connect failed, retry ${i}/15";
         sleep 2;
       done;
-      env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
-        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';";
+
+      echo "[dbfix] forcing password for ${POSTGRES_USER}...";
+      # ВАЖНО: пароль экранируем, чтобы спецсимволы не ломали SQL
+      env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -v ON_ERROR_STOP=1 \
+        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")';";
       echo "[dbfix] done";
     restart: "no"
 
@@ -50,9 +53,6 @@ services:
     env_file: .env
     entrypoint: sh
     command: -c 'minio server --console-address ":9001" /data'
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -74,7 +74,6 @@ services:
         condition: service_healthy
     environment:
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
-      S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
     command: >
       set -euo pipefail;
@@ -86,9 +85,9 @@ services:
     restart: "no"
 
   web:
-    restart: unless-stopped
     image: node:20-bookworm-slim
     container_name: web-dev
+    restart: unless-stopped
     working_dir: /app
     volumes:
       - ./:/app
@@ -121,38 +120,34 @@ services:
       createbuckets:
         condition: service_completed_successfully
     command: >
-      sh -lc "
+      sh -lc '
         set -e;
 
-        echo '[web-dev] deps...';
+        echo "[web-dev] deps...";
         if [ ! -f node_modules/.bin/prisma ]; then
-          echo '[web-dev] installing deps (prisma missing)...';
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund;
-          else
-            npm install --no-audit --no-fund;
-          fi;
+          echo "[web-dev] installing deps (prisma missing)...";
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi;
         fi;
 
-        echo '[web-dev] prisma generate...';
+        echo "[web-dev] prisma generate...";
         npx --no-install prisma generate;
 
-        echo '[web-dev] Prisma migrate (retry)...';
+        echo "[web-dev] Prisma migrate (retry)...";
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if npx --no-install prisma migrate deploy; then ok=1; break; fi;
-          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
+          echo "[web-dev] migrate failed, retry ${i}/10 ...";
           sleep 2;
         done;
 
-        if [ \"${ok}\" -ne 1 ]; then
-          echo '[web-dev] migrate did not succeed, trying db push...';
+        if [ "$ok" -ne 1 ]; then
+          echo "[web-dev] migrate did not succeed, trying db push...";
           npx --no-install prisma db push;
         fi;
 
-        echo '[web-dev] start dev server';
+        echo "[web-dev] start dev server";
         exec npm run dev
-      "
+      '
 
 volumes:
   db-data:
