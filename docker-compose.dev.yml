@@ -1,5 +1,6 @@
 services:
   web:
+    restart: unless-stopped
     image: node:20-bookworm-slim
     container_name: web-dev
     working_dir: /app
