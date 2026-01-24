@@ -19,7 +19,7 @@ services:
       retries: 10
     restart: always
 
-  # one-shot: гарантирует, что пароль юзера в реальной БД == .env
+  # one-shot: гарантирует, что пароль юзера в реальной БД == .env (даже на уже существующем volume)
   dbfix:
     image: postgres:17-alpine
     container_name: dbfix
@@ -31,7 +31,6 @@ services:
     command: >
       set -euo pipefail;
       echo "[dbfix] forcing password for ${POSTGRES_USER}...";
-      # ждём, пока psql точно сможет коннектиться (бывает race)
       for i in 1 2 3 4 5 6 7 8 9 10; do
         if env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
           echo "[dbfix] connect ok";
@@ -85,6 +84,75 @@ services:
       mc anonymous set download myminio/${S3_BUCKET} || mc anonymous set public myminio/${S3_BUCKET} || true;
       echo "Buckets now:"; mc ls myminio
     restart: "no"
+
+  web:
+    restart: unless-stopped
+    image: node:20-bookworm-slim
+    container_name: web-dev
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    env_file: .env
+    environment:
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+
+      S3_PUBLIC_URL: http://localhost:9000/images
+      MINIO_INTERNAL_BASE: http://minio:9000/images
+
+      NEXTAUTH_URL: http://localhost:3000
+      PORT: 3000
+
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      dbfix:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+    command: >
+      sh -lc "
+        set -e;
+
+        echo '[web-dev] deps...';
+        if [ ! -f node_modules/.bin/prisma ]; then
+          echo '[web-dev] installing deps (prisma missing)...';
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund;
+          else
+            npm install --no-audit --no-fund;
+          fi;
+        fi;
+
+        echo '[web-dev] prisma generate...';
+        npx --no-install prisma generate;
+
+        echo '[web-dev] Prisma migrate (retry)...';
+        ok=0;
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if npx --no-install prisma migrate deploy; then ok=1; break; fi;
+          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
+          sleep 2;
+        done;
+
+        if [ \"${ok}\" -ne 1 ]; then
+          echo '[web-dev] migrate did not succeed, trying db push...';
+          npx --no-install prisma db push;
+        fi;
+
+        echo '[web-dev] start dev server';
+        exec npm run dev
+      "
 
 volumes:
   db-data:

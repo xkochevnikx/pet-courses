@@ -1,26 +1,28 @@
 services:
   web:
-    restart: unless-stopped
     image: node:20-bookworm-slim
     container_name: web-dev
+    restart: unless-stopped
     working_dir: /app
     volumes:
       - ./:/app
       - /app/node_modules
     env_file: .env
     environment:
+      # S3/MinIO
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET}
-
       S3_PUBLIC_URL: http://localhost:9000/images
       MINIO_INTERNAL_BASE: http://minio:9000/images
 
+      # App
       NEXTAUTH_URL: http://localhost:3000
       PORT: 3000
 
+      # Hot reload
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
     ports:
@@ -34,9 +36,10 @@ services:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
+
     command: >
       sh -lc "
-        set -e;
+        set -eu;
 
         echo '[web-dev] deps...';
         if [ ! -f node_modules/.bin/prisma ]; then
@@ -59,7 +62,7 @@ services:
           sleep 2;
         done;
 
-        if [ \"${ok}\" -ne 1 ]; then
+        if [ \"${ok}\" != \"1\" ]; then
           echo '[web-dev] migrate did not succeed, trying db push...';
           npx --no-install prisma db push;
         fi;
