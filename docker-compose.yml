@@ -13,11 +13,37 @@ services:
       - db-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
     restart: always
+
+  # one-shot: гарантирует, что пароль юзера в реальной БД == .env
+  dbfix:
+    image: postgres:17-alpine
+    container_name: dbfix
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >
+      set -euo pipefail;
+      echo "[dbfix] forcing password for ${POSTGRES_USER}...";
+      # ждём, пока psql точно сможет коннектиться (бывает race)
+      for i in 1 2 3 4 5 6 7 8 9 10; do
+        if env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
+          echo "[dbfix] connect ok";
+          break;
+        fi;
+        echo "[dbfix] connect failed, retry ${i}/10";
+        sleep 2;
+      done;
+      env PGPASSWORD="${POSTGRES_PASSWORD}" psql -h db -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';";
+      echo "[dbfix] done";
+    restart: "no"
 
   minio:
     image: minio/minio:latest
@@ -51,15 +77,13 @@ services:
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
       S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
-    command:
-      - >
-        set -euo pipefail;
-        echo "S3_BUCKET=${S3_BUCKET}";
-        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
-        mc mb -p myminio/${S3_BUCKET} || true;
-        mc anonymous set download myminio/${S3_BUCKET} ||
-        mc anonymous set public  myminio/${S3_BUCKET} || true;
-        echo "Buckets now:"; mc ls myminio
+    command: >
+      set -euo pipefail;
+      echo "S3_BUCKET=${S3_BUCKET}";
+      mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+      mc mb -p myminio/${S3_BUCKET} || true;
+      mc anonymous set download myminio/${S3_BUCKET} || mc anonymous set public myminio/${S3_BUCKET} || true;
+      echo "Buckets now:"; mc ls myminio
     restart: "no"
 
 volumes:

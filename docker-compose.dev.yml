@@ -7,39 +7,6 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
-    command: >
-      sh -lc "
-        set -e;
-
-        echo '[web-dev] deps...';
-        if [ ! -f node_modules/.bin/prisma ]; then
-          echo '[web-dev] installing deps (prisma missing)...';
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund;
-          else
-            npm install --no-audit --no-fund;
-          fi;
-        fi;
-
-        echo '[web-dev] prisma generate...';
-        npx prisma generate;
-
-        echo '[web-dev] Prisma migrate (retry)...';
-        ok=0;
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          if npx prisma migrate deploy; then ok=1; break; fi;
-          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
-          sleep 2;
-        done;
-
-        if [ \"${ok}\" -ne 1 ]; then
-          echo '[web-dev] migrate did not succeed, trying db push...';
-          npx prisma db push;
-        fi;
-
-        echo '[web-dev] start dev server';
-        exec npm run dev
-      "
     env_file: .env
     environment:
       S3_ENDPOINT: http://minio:9000
@@ -61,7 +28,42 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      dbfix:
+        condition: service_completed_successfully
       minio:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
+    command: >
+      sh -lc "
+        set -e;
+
+        echo '[web-dev] deps...';
+        if [ ! -f node_modules/.bin/prisma ]; then
+          echo '[web-dev] installing deps (prisma missing)...';
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund;
+          else
+            npm install --no-audit --no-fund;
+          fi;
+        fi;
+
+        echo '[web-dev] prisma generate...';
+        npx --no-install prisma generate;
+
+        echo '[web-dev] Prisma migrate (retry)...';
+        ok=0;
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if npx --no-install prisma migrate deploy; then ok=1; break; fi;
+          echo \"[web-dev] migrate failed, retry ${i}/10 ...\";
+          sleep 2;
+        done;
+
+        if [ \"${ok}\" -ne 1 ]; then
+          echo '[web-dev] migrate did not succeed, trying db push...';
+          npx --no-install prisma db push;
+        fi;
+
+        echo '[web-dev] start dev server';
+        exec npm run dev
+      "
