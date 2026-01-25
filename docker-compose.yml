@@ -73,20 +73,23 @@ services:
   createbuckets:
     image: minio/mc:latest
     container_name: createbuckets
-    env_file: .env
     depends_on:
       minio:
         condition: service_healthy
     environment:
+      # alias через переменную окружения — самый простой способ
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
+      S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
-    command: >
-      set -euo pipefail;
-      echo "S3_BUCKET=${S3_BUCKET}";
-      mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
-      mc mb -p myminio/${S3_BUCKET} || true;
-      mc anonymous set download myminio/${S3_BUCKET} || mc anonymous set public myminio/${S3_BUCKET} || true;
-      echo "Buckets now:"; mc ls myminio
+    command:
+      - >
+        set -euo pipefail;
+        echo "S3_BUCKET=${S3_BUCKET}";
+        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+        mc mb -p myminio/${S3_BUCKET} || true;
+        mc anonymous set download myminio/${S3_BUCKET} ||
+        mc anonymous set public  myminio/${S3_BUCKET} || true;
+        echo "Buckets now:"; mc ls myminio
     restart: "no"
 
   web:
