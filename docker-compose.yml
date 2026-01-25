@@ -10,8 +10,6 @@ services:
       - db-data:/var/lib/postgresql/data
       # общий сокет, чтобы dbfix мог зайти локально "trust"
       - pg-run:/var/run/postgresql
-      # твои init-скрипты (опционально; если нет — папку можно не создавать)
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
         [

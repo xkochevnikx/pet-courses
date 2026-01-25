@@ -1,11 +1,56 @@
 services:
+  web:
+    image: node:20-alpine
+    container_name: web-dev
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: >
+      sh -lc "
+        echo '[web-dev] npm install (mount volume)...';
+        npm install --no-audit --no-fund;
+        echo '[web-dev] Prisma migrate...';
+        npx prisma migrate deploy || npx prisma db push;
+        echo '[web-dev] start dev server';
+        npm run dev
+      "
+    env_file: .env
+    environment:
+      # Внутри docker-сети база по хосту 'db'
+      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+
+      # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+
+      # Публичная база для ссылок из браузера
+      S3_PUBLIC_URL: http://localhost:9000/images
+      # Внутренний базовый URL (для rewrite /storage/* → MinIO с именем бакета)
+      MINIO_INTERNAL_BASE: http://minio:9000/images
+
+      # NextAuth и прочее
+      NEXTAUTH_URL: http://localhost:3000
+      PORT: 3000
+
+      # Hot reload в Docker на Mac/Windows
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
   db:
     image: postgres:17-alpine
     container_name: db
-    env_file: .env
-    # Для dev можно наружу. Если на сервере — лучше привязать к localhost:
-    # ports:
-    #   - "127.0.0.1:5432:5432"
     ports:
       - "5432:5432"
     environment:
@@ -14,63 +59,24 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
-      - pg-run:/var/run/postgresql
-      # init-скрипты (опционально, можно оставить)
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 5
     restart: always
-
-  # one-shot: приводит пароль роли в БД к .env даже если volume старый
-  # Делает это через unix-socket => local trust => не зависит от старого пароля.
-  dbfix:
-    image: postgres:17-alpine
-    container_name: dbfix
-    env_file: .env
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - pg-run:/var/run/postgresql
-    entrypoint: ["/bin/sh", "-lc"]
-    command: >
-      set -euo pipefail;
-
-      echo "[dbfix] wait for local socket...";
-      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-        if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
-          echo "[dbfix] socket connect ok";
-          break;
-        fi;
-        echo "[dbfix] socket connect failed, retry ${i}/15";
-        sleep 2;
-      done;
-
-      echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
-      esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
-      psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
-        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${esc_pw}';";
-      echo "[dbfix] done";
-    restart: "no"
 
   minio:
     image: minio/minio:latest
     container_name: minio
-    env_file: .env
-    command: server --console-address ":9001" /data
+    entrypoint: sh
+    command: -c 'minio server --console-address ":9001" /data'
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000" # API
+      - "9001:9001" # Web-консоль
     volumes:
       - minio-data:/data
     healthcheck:
@@ -83,105 +89,26 @@ services:
   createbuckets:
     image: minio/mc:latest
     container_name: createbuckets
-    env_file: .env
     depends_on:
       minio:
         condition: service_healthy
     environment:
+      # alias через переменную окружения — самый простой способ
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
       S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
-    command: >
-      set -euo pipefail;
-      echo "S3_BUCKET=${S3_BUCKET}";
-      mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
-      mc mb -p myminio/${S3_BUCKET} || true;
-      mc anonymous set download myminio/${S3_BUCKET} || mc anonymous set public myminio/${S3_BUCKET} || true;
-      echo "Buckets now:"; mc ls myminio
+    command:
+      - >
+        set -euo pipefail;
+        echo "S3_BUCKET=${S3_BUCKET}";
+        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+        mc mb -p myminio/${S3_BUCKET} || true;
+        mc anonymous set download myminio/${S3_BUCKET} ||
+        mc anonymous set public  myminio/${S3_BUCKET} || true;
+        echo "Buckets now:"; mc ls myminio
     restart: "no"
-
-  web:
-    image: node:20-bookworm-slim
-    container_name: web-dev
-    restart: unless-stopped
-    working_dir: /app
-    env_file: .env
-    environment:
-      # DB: внутри сети docker хост db
-      DATABASE_URL: ${DATABASE_URL}
-
-      # S3/MinIO (не хардкодим секреты)
-      S3_ENDPOINT: ${S3_ENDPOINT}
-      S3_REGION: ${S3_REGION}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-      MINIO_INTERNAL_BASE: ${MINIO_INTERNAL_BASE}
-
-      # NextAuth + public url (важно для ссылок в письмах/редиректов)
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
-      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL}
-
-      PORT: ${PORT:-3000}
-
-      # Hot reload в Docker на Mac/Windows (можно оставить)
-      WATCHPACK_POLLING: "true"
-      CHOKIDAR_USEPOLLING: "true"
-
-    volumes:
-      - ./:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    depends_on:
-      db:
-        condition: service_healthy
-      dbfix:
-        condition: service_completed_successfully
-      minio:
-        condition: service_healthy
-      createbuckets:
-        condition: service_completed_successfully
-
-    command: >
-      sh -lc '
-        set -e;
-
-        echo "[web-dev] deps...";
-        if [ -f package-lock.json ]; then
-          if [ ! -d node_modules ] || [ ! -f node_modules/.bin/next ]; then
-            npm ci --no-audit --no-fund;
-          fi;
-        else
-          if [ ! -d node_modules ] || [ ! -f node_modules/.bin/next ]; then
-            npm install --no-audit --no-fund;
-          fi;
-        fi;
-
-        echo "[web-dev] prisma generate...";
-        npx --no-install prisma generate;
-
-        echo "[web-dev] Prisma migrate (retry)...";
-        ok=0;
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          if npx --no-install prisma migrate deploy; then ok=1; break; fi;
-          echo "[web-dev] migrate failed, retry ${i}/10 ...";
-          sleep 2;
-        done;
-
-        if [ "$ok" -ne 1 ]; then
-          echo "[web-dev] migrate did not succeed, trying db push...";
-          npx --no-install prisma db push;
-        fi;
-
-        echo "[web-dev] start dev server";
-        exec npm run dev
-      '
-
 volumes:
   db-data:
     name: pet-courses-project_db-data
   minio-data:
     name: pet-courses-project_minio-data
-  pg-run:
