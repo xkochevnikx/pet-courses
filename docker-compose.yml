@@ -3,16 +3,14 @@ services:
     image: postgres:17-alpine
     container_name: db
     env_file: .env
-    # ВАЖНО: не светим Postgres наружу. Если прям надо наружу — сделай firewall/allowlist.
     ports:
+      # наружу только на localhost (безопаснее)
       - "127.0.0.1:5432:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
+      # общий сокет, чтобы dbfix мог зайти локально "trust"
       - pg-run:/var/run/postgresql
+      # твои init-скрипты (опционально; если нет — папку можно не создавать)
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
@@ -25,8 +23,8 @@ services:
       retries: 20
     restart: always
 
-  # one-shot: приводит пароль роли в БД к .env ДАЖЕ если volume старый
-  # Делает это через unix-socket (local trust), поэтому не зависит от старого пароля.
+  # one-shot: фиксирует пароль роли в БД согласно .env даже если volume старый
+  # заходит через unix-socket (local trust), поэтому не зависит от старого пароля
   dbfix:
     image: postgres:17-alpine
     container_name: dbfix
@@ -61,8 +59,7 @@ services:
     image: minio/minio:latest
     container_name: minio
     env_file: .env
-    entrypoint: sh
-    command: -c 'minio server --console-address ":9001" /data'
+    command: minio server --console-address ":9001" /data
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -84,7 +81,6 @@ services:
         condition: service_healthy
     environment:
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
-      S3_BUCKET: ${S3_BUCKET}
     entrypoint: ["/bin/sh", "-lc"]
     command: >
       set -euo pipefail;
@@ -104,21 +100,6 @@ services:
       - ./:/app
       - /app/node_modules
     env_file: .env
-    environment:
-      S3_ENDPOINT: http://minio:9000
-      S3_REGION: us-east-1
-      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      S3_BUCKET: ${S3_BUCKET}
-
-      S3_PUBLIC_URL: http://localhost:9000/images
-      MINIO_INTERNAL_BASE: http://minio:9000/images
-
-      NEXTAUTH_URL: http://localhost:3000
-      PORT: 3000
-
-      WATCHPACK_POLLING: "true"
-      CHOKIDAR_USEPOLLING: "true"
     ports:
       - "3000:3000"
     depends_on:
@@ -134,6 +115,12 @@ services:
       sh -lc '
         set -e;
 
+        echo "[web-dev] env sanity:";
+        echo "  NEXTAUTH_URL=$${NEXTAUTH_URL:-}";
+        echo "  DATABASE_URL=$${DATABASE_URL:-}";
+        echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
+        echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
+
         echo "[web-dev] deps...";
         if [ ! -f node_modules/.bin/prisma ]; then
           echo "[web-dev] installing deps (prisma missing)...";
@@ -147,11 +134,11 @@ services:
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if npx --no-install prisma migrate deploy; then ok=1; break; fi;
-          echo "[web-dev] migrate failed, retry ${i}/10 ...";
+          echo "[web-dev] migrate failed, retry $${i}/10 ...";
           sleep 2;
         done;
 
-        if [ "$ok" -ne 1 ]; then
+        if [ "$${ok}" -ne 1 ]; then
           echo "[web-dev] migrate did not succeed, trying db push...";
           npx --no-install prisma db push;
         fi;
