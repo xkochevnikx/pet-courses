@@ -91,7 +91,7 @@ services:
 
   web:
     image: node:20-bookworm-slim
-    container_name: web-dev
+    container_name: web-stage
     restart: unless-stopped
     working_dir: /app
     volumes:
@@ -113,36 +113,36 @@ services:
       sh -lc '
         set -e;
 
-        echo "[web-dev] env sanity:";
+        echo "[web-stage] env sanity:";
         echo "  NEXTAUTH_URL=$${NEXTAUTH_URL:-}";
         echo "  DATABASE_URL=$${DATABASE_URL:-}";
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
         echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
 
-        echo "[web-dev] deps...";
+        echo "[web-stage] deps...";
         if [ ! -f node_modules/.bin/prisma ]; then
-          echo "[web-dev] installing deps (prisma missing)...";
+          echo "[web-stage] installing deps (prisma missing)...";
           if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi;
         fi;
 
-        echo "[web-dev] prisma generate...";
+        echo "[web-stage] prisma generate...";
         npx --no-install prisma generate;
 
-        echo "[web-dev] Prisma migrate (retry)...";
+        echo "[web-stage] Prisma migrate (retry)...";
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
           if npx --no-install prisma migrate deploy; then ok=1; break; fi;
-          echo "[web-dev] migrate failed, retry $${i}/10 ...";
+          echo "[web-stage] migrate failed, retry $${i}/10 ...";
           sleep 2;
         done;
 
         if [ "$${ok}" -ne 1 ]; then
-          echo "[web-dev] migrate did not succeed, trying db push...";
+          echo "[web-stage] migrate did not succeed, trying db push...";
           npx --no-install prisma db push;
         fi;
 
-        echo "[web-dev] start dev server";
-        exec npm run dev
+        echo "[web-stage] start server";
+        exec npm run start
       '
 
 volumes:
