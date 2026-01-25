@@ -35,7 +35,7 @@ services:
   #   entrypoint: ["/bin/sh", "-lc"]
   #   command: >
   #     set -euo pipefail;
-
+  #
   #     echo "[dbfix] wait for local socket...";
   #     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   #       if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
@@ -45,7 +45,7 @@ services:
   #       echo "[dbfix] socket connect failed, retry ${i}/15";
   #       sleep 2;
   #     done;
-
+  #
   #     echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
   #     esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
   #     psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
@@ -98,6 +98,11 @@ services:
       - ./:/app
       - /app/node_modules
     env_file: .env
+    environment:
+      # ВАЖНО: Next.js хочет стандартный NODE_ENV
+      NODE_ENV: production
+      # Если нужно “stage” — используй отдельную переменную
+      # APP_ENV: stage
     ports:
       - "3000:3000"
     depends_on:
@@ -114,6 +119,7 @@ services:
         set -e;
 
         echo "[web-stage] env sanity:";
+        echo "  NODE_ENV=$${NODE_ENV:-}";
         echo "  NEXTAUTH_URL=$${NEXTAUTH_URL:-}";
         echo "  DATABASE_URL=$${DATABASE_URL:-}";
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
@@ -140,6 +146,9 @@ services:
           echo "[web-stage] migrate did not succeed, trying db push...";
           npx --no-install prisma db push;
         fi;
+
+        echo "[web-stage] next build...";
+        npm run build;
 
         echo "[web-stage] start server";
         exec npm run start
