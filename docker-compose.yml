@@ -23,35 +23,35 @@ services:
 
   # one-shot: фиксирует пароль роли в БД согласно .env даже если volume старый
   # заходит через unix-socket (local trust), поэтому не зависит от старого пароля
-  dbfix:
-    image: postgres:17-alpine
-    container_name: dbfix
-    env_file: .env
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - pg-run:/var/run/postgresql
-    entrypoint: ["/bin/sh", "-lc"]
-    command: >
-      set -euo pipefail;
+  # dbfix:
+  #   image: postgres:17-alpine
+  #   container_name: dbfix
+  #   env_file: .env
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   volumes:
+  #     - pg-run:/var/run/postgresql
+  #   entrypoint: ["/bin/sh", "-lc"]
+  #   command: >
+  #     set -euo pipefail;
 
-      echo "[dbfix] wait for local socket...";
-      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-        if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
-          echo "[dbfix] socket connect ok";
-          break;
-        fi;
-        echo "[dbfix] socket connect failed, retry ${i}/15";
-        sleep 2;
-      done;
+  #     echo "[dbfix] wait for local socket...";
+  #     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  #       if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
+  #         echo "[dbfix] socket connect ok";
+  #         break;
+  #       fi;
+  #       echo "[dbfix] socket connect failed, retry ${i}/15";
+  #       sleep 2;
+  #     done;
 
-      echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
-      esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
-      psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
-        -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${esc_pw}';";
-      echo "[dbfix] done";
-    restart: "no"
+  #     echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
+  #     esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
+  #     psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+  #       -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${esc_pw}';";
+  #     echo "[dbfix] done";
+  #   restart: "no"
 
   minio:
     image: minio/minio:latest
@@ -103,8 +103,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      dbfix:
-        condition: service_completed_successfully
+      # dbfix:
+      #   condition: service_completed_successfully
       minio:
         condition: service_healthy
       createbuckets:
