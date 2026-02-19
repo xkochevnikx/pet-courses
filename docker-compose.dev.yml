@@ -1,114 +1,231 @@
 services:
+  # =========================
+  # 1) web-dev (Next.js dev + Prisma)
+  # =========================
   web:
+    # Базовый образ Node.js (alpine — минимальный)
     image: node:20-alpine
+
+    # Фиксированное имя контейнера (удобно для logs/exec)
     container_name: web-dev
+
+    # Рабочая директория внутри контейнера
     working_dir: /app
+
     volumes:
+      # 1) Монтируем текущую папку проекта в контейнер
+      #    → код меняется на хосте — изменения сразу видны контейнеру
       - ./:/app
+
+      # 2) Отдельный volume для node_modules внутри контейнера
+      #    → чтобы не замусоривать/не ломать node_modules на хосте
       - /app/node_modules
+
     command: >
       sh -lc "
+        # Запускаем shell (sh) как login (-l) и выполняем команду (-c)
+
         echo '[web-dev] npm install (mount volume)...';
+        # Устанавливаем зависимости (каждый старт контейнера будет делать npm install)
         npm install --no-audit --no-fund;
+
         echo '[web-dev] Prisma migrate...';
+        # Пробуем применить миграции (migrate deploy)
+        # Если не получилось — fallback на prisma db push
         npx prisma migrate deploy || npx prisma db push;
+
         echo '[web-dev] start dev server';
+        # Запускаем dev сервер Next.js (hot reload)
         npm run dev
       "
+
+    # Подхватываем переменные окружения из .env (для web, prisma, nextauth, s3 и т.д.)
     env_file: .env
+
     environment:
-      # Внутри docker-сети база по хосту 'db'
+      # -------------------------
+      # DB внутри docker-сети
+      # -------------------------
+      # Внутри сети Docker нужно ходить не в localhost, а в сервис db
       DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
 
-      # S3/MinIO для SDK (внимание: endpoint БЕЗ /images)
+      # -------------------------
+      # S3/MinIO настройки для SDK
+      # -------------------------
+      # Важно: endpoint БЕЗ /images, только хост:порт
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
+
+      # Ключи берём из переменных MINIO_ROOT_* (удобно: один источник правды)
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+
+      # Название бакета (например images)
       S3_BUCKET: ${S3_BUCKET}
 
-      # Публичная база для ссылок из браузера
+      # -------------------------
+      # Публичные URL (для браузера)
+      # -------------------------
+      # URL, по которому браузер (на хосте) сможет ходить к MinIO.
+      # Тут localhost, потому что браузер = хостовая машина.
       S3_PUBLIC_URL: http://localhost:9000/images
-      # Внутренний базовый URL (для rewrite /storage/* → MinIO с именем бакета)
+
+      # -------------------------
+      # Внутренний URL (для rewrites/proxy внутри контейнера)
+      # -------------------------
+      # Внутри docker-сети MinIO доступен по имени сервиса minio
       MINIO_INTERNAL_BASE: http://minio:9000/images
 
+      # -------------------------
       # NextAuth и прочее
+      # -------------------------
       NEXTAUTH_URL: http://localhost:3000
       PORT: 3000
 
-      # Hot reload в Docker на Mac/Windows
+      # -------------------------
+      # Hot reload в Docker (особенно Mac/Windows)
+      # -------------------------
+      # Форсируем polling для watcher-ов
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
+
     ports:
+      # Пробрасываем dev-сервер наружу на хост
       - "3000:3000"
+
     depends_on:
       db:
+        # Ждём, пока Postgres станет healthy по healthcheck
         condition: service_healthy
       minio:
+        # Ждём, пока MinIO станет healthy
         condition: service_healthy
       createbuckets:
+        # Ждём, пока createbuckets завершится с кодом 0 (создаст бакет)
         condition: service_completed_successfully
+
+  # =========================
+  # 2) Postgres (DB)
+  # =========================
   db:
     image: postgres:17-alpine
     container_name: db
+
     ports:
+      # Проброс порта наружу (на хосте будет доступно localhost:5432)
+      # В dev так ок, но если хочешь безопаснее — можно как в stage: 127.0.0.1:5432:5432
       - "5432:5432"
+
     environment:
+      # Берём настройки пользователя/пароля/базы из .env
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+
     volumes:
+      # Персистим данные Postgres между перезапусками
       - db-data:/var/lib/postgresql/data
+
     healthcheck:
+      # Проверяем готовность Postgres принимать соединения
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
     restart: always
 
+  # =========================
+  # 3) MinIO (S3-совместимое хранилище)
+  # =========================
   minio:
     image: minio/minio:latest
     container_name: minio
+
+    # Меняем entrypoint на sh, чтобы можно было использовать command с -c
     entrypoint: sh
+
+    # Запускаем MinIO сервер + web-консоль
     command: -c 'minio server --console-address ":9001" /data'
+
     environment:
+      # root creds для MinIO (из .env)
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
     ports:
-      - "9000:9000" # API
-      - "9001:9001" # Web-консоль
+      # 9000 — API (S3)
+      - "9000:9000"
+      # 9001 — web UI
+      - "9001:9001"
+
     volumes:
+      # Персистим данные MinIO (бакеты/объекты) между перезапусками
       - minio-data:/data
+
     healthcheck:
+      # Проверяем, что MinIO “жив”
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
       timeout: 3s
       retries: 20
+
     restart: always
 
+  # =========================
+  # 4) createbuckets (one-shot: создаёт бакет в MinIO)
+  # =========================
   createbuckets:
     image: minio/mc:latest
     container_name: createbuckets
+
     depends_on:
       minio:
+        # запускаем только после того, как MinIO healthy
         condition: service_healthy
+
     environment:
-      # alias через переменную окружения — самый простой способ
+      # Готовый alias myminio через env:
+      # после этого mc знает "myminio" без ручного "mc alias set"
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
+
+      # Имя бакета (например images)
       S3_BUCKET: ${S3_BUCKET}
+
     entrypoint: ["/bin/sh", "-lc"]
+
     command:
       - >
+        # строгий режим
         set -euo pipefail;
+
+        # логируем бакет
         echo "S3_BUCKET=${S3_BUCKET}";
+
+        # проверка доступности alias
         mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+
+        # создаём бакет (если уже есть — ок)
         mc mb -p myminio/${S3_BUCKET} || true;
+
+        # делаем бакет публичным на скачивание (или public)
         mc anonymous set download myminio/${S3_BUCKET} ||
         mc anonymous set public  myminio/${S3_BUCKET} || true;
+
+        # печатаем список бакетов
         echo "Buckets now:"; mc ls myminio
+
+    # одноразовый контейнер: отработал — завершился
     restart: "no"
+
+# =========================
+# 5) Volumes (персистентные данные)
+# =========================
 volumes:
+  # данные Postgres (таблицы/индексы)
   db-data:
     name: pet-courses-project_db-data
+
+  # данные MinIO (бакеты/объекты)
   minio-data:
     name: pet-courses-project_minio-data

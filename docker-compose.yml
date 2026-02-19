@@ -1,126 +1,186 @@
 services:
+  # =========================
+  # 1) Postgres (DB)
+  # =========================
   db:
+    # Берём официальный Postgres в Alpine (легковесный)
     image: postgres:17-alpine
+
+    # Фиксированное имя контейнера (удобно для docker logs / docker exec)
     container_name: db
+
+    # Подхватываем переменные POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB и т.п.
     env_file: .env
+
     ports:
-      # наружу только на localhost (безопаснее)
+      # Пробрасываем порт БД наружу, НО только на localhost (безопаснее)
+      # С хоста можно подключаться: localhost:5432
       - "127.0.0.1:5432:5432"
+
     volumes:
+      # 1) Персистентное хранилище данных Postgres (таблицы, индексы и т.д.)
+      # Если volume не удалить — данные будут жить между перезапусками compose
       - db-data:/var/lib/postgresql/data
-      # общий сокет, чтобы dbfix мог зайти локально "trust"
+
+      # 2) Общий volume для unix-socket Postgres (файл сокета в /var/run/postgresql)
+      # Тебе нужен был для dbfix, чтобы можно было заходить “локально” через сокет (trust),
+      # даже если по сети/паролю что-то сломано.
       - pg-run:/var/run/postgresql
+
     healthcheck:
-      test:
-        [
+      test: [
           "CMD-SHELL",
+          # Проверка “готова ли БД принимать соединения”.
+          # -U и -d берём из .env, -h 127.0.0.1 обращается к Postgres внутри контейнера.
           "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+      interval: 10s # как часто проверять
+      timeout: 5s # сколько ждать ответа
+      retries: 20 # сколько раз пробовать, прежде чем считать unhealthy
+
+    # Если контейнер упал — поднимай обратно
     restart: always
 
-  # one-shot: фиксирует пароль роли в БД согласно .env даже если volume старый
-  # заходит через unix-socket (local trust), поэтому не зависит от старого пароля
-  # dbfix:
-  #   image: postgres:17-alpine
-  #   container_name: dbfix
-  #   env_file: .env
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   volumes:
-  #     - pg-run:/var/run/postgresql
-  #   entrypoint: ["/bin/sh", "-lc"]
-  #   command: >
-  #     set -euo pipefail;
-  #
-  #     echo "[dbfix] wait for local socket...";
-  #     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  #       if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "select 1" >/dev/null 2>&1; then
-  #         echo "[dbfix] socket connect ok";
-  #         break;
-  #       fi;
-  #       echo "[dbfix] socket connect failed, retry ${i}/15";
-  #       sleep 2;
-  #     done;
-  #
-  #     echo "[dbfix] forcing password for ${POSTGRES_USER} via socket...";
-  #     esc_pw="$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")";
-  #     psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
-  #       -c "ALTER USER \"${POSTGRES_USER}\" WITH PASSWORD '${esc_pw}';";
-  #     echo "[dbfix] done";
-  #   restart: "no"
-
+  # =========================
+  # 2) MinIO (S3-совместимое хранилище)
+  # =========================
   minio:
+    # MinIO сервер
     image: minio/minio:latest
     container_name: minio
+
+    # Берём MINIO_ROOT_USER / MINIO_ROOT_PASSWORD и т.п. из .env
     env_file: .env
+
+    # Запускаем MinIO и включаем web-консоль на 9001
     command: minio server --console-address ":9001" /data
+
     ports:
+      # 9000 — API (S3)
       - "9000:9000"
+      # 9001 — web UI консоль
       - "9001:9001"
+
     volumes:
+      # Персистим бакеты/объекты MinIO в volume
       - minio-data:/data
+
     healthcheck:
+      # Проверяем liveness endpoint MinIO
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
       timeout: 3s
       retries: 20
+
     restart: always
 
+  # =========================
+  # 3) createbuckets (one-shot контейнер, создаёт бакет)
+  # =========================
   createbuckets:
+    # MinIO Client (mc) — утилита для управления MinIO
     image: minio/mc:latest
     container_name: createbuckets
+
     depends_on:
       minio:
+        # Ждём, пока minio станет healthy (по healthcheck выше)
         condition: service_healthy
+
     environment:
-      # alias через переменную окружения — самый простой способ
+      # MC_HOST_myminio — “alias” в mc через env.
+      # Формат: http://USER:PASS@HOST:PORT
+      # После этого можно писать: mc ls myminio / mc mb myminio/images и т.д.
       MC_HOST_myminio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
+
+      # Имя бакета (например images) берём из .env
       S3_BUCKET: ${S3_BUCKET}
+
+    # Запускаем /bin/sh с ключами:
+    # -l (login shell) и -c (выполнить команду строкой)
     entrypoint: ["/bin/sh", "-lc"]
+
     command:
       - >
+        # Прерывать скрипт при ошибках:
+        # -e: выход при ненулевом коде
+        # -u: ошибка при обращении к несуществующей переменной
+        # -o pipefail: ошибка, если любой элемент пайпа упал
         set -euo pipefail;
+
+        # Логируем какое имя бакета ожидаем
         echo "S3_BUCKET=${S3_BUCKET}";
+
+        # Проверяем, что alias myminio реально доступен (MinIO отвечает)
         mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
+
+        # Создаём бакет (idempotent: если уже есть — ок)
         mc mb -p myminio/${S3_BUCKET} || true;
+
+        # Делаем бакет публичным на скачивание (анонимный доступ)
+        # На разных версиях mc команды/режимы могут отличаться,
+        # поэтому пробуем download, если не получилось — пробуем public,
+        # и только потом продолжаем (|| true)
         mc anonymous set download myminio/${S3_BUCKET} ||
         mc anonymous set public  myminio/${S3_BUCKET} || true;
+
+        # Показываем итоговый список бакетов
         echo "Buckets now:"; mc ls myminio
+
+    # One-shot: контейнер выполнился — завершился
     restart: "no"
 
+  # =========================
+  # 4) web-stage (Next.js + Prisma)
+  # =========================
   web:
     image: node:20-bookworm-slim
     container_name: web-stage
+
+    # Если упадёт — поднимется, но не в бесконечный loop если ты сам стопнул
     restart: unless-stopped
+
+    # Рабочая директория внутри контейнера
     working_dir: /app
+
     volumes:
+      # Монтируем проект в /app, чтобы код был “живой”
       - ./:/app
+
+      # Отдельный volume под node_modules, чтобы не тянуть/не портить node_modules на хосте
       - /app/node_modules
+
+    # Все твои env (NEXTAUTH_URL, DATABASE_URL, S3_* и т.д.)
     env_file: .env
+
     environment:
-      # ВАЖНО: Next.js хочет стандартный NODE_ENV
+      # Next.js предупреждает/ломается при нестандартном NODE_ENV,
+      # поэтому ставим production, раз ты запускаешь build+start.
       NODE_ENV: production
-      # Если нужно “stage” — используй отдельную переменную
+      # Для “stage/dev/prod” окружений лучше использовать отдельную переменную:
       # APP_ENV: stage
+
     ports:
+      # Порт приложения наружу
       - "3000:3000"
+
     depends_on:
       db:
+        # Ждём healthy от Postgres
         condition: service_healthy
-      # dbfix:
-      #   condition: service_completed_successfully
       minio:
+        # Ждём healthy от MinIO
         condition: service_healthy
       createbuckets:
+        # Ждём, пока бакет создан (контейнер завершился с 0)
         condition: service_completed_successfully
+
     command: >
       sh -lc '
+        # Выходим при первой ошибке (важно: иначе можно “ехать дальше” с поломанным состоянием)
         set -e;
 
+        # Печатаем ключевые env, чтобы сразу видеть, что реально подхватилось в контейнере
         echo "[web-stage] env sanity:";
         echo "  NODE_ENV=$${NODE_ENV:-}";
         echo "  NEXTAUTH_URL=$${NEXTAUTH_URL:-}";
@@ -128,15 +188,22 @@ services:
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
         echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
 
+        # 1) Зависимости: если prisma отсутствует — значит node_modules пустой → ставим deps
         echo "[web-stage] deps...";
         if [ ! -f node_modules/.bin/prisma ]; then
           echo "[web-stage] installing deps (prisma missing)...";
-          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi;
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund;
+          else
+            npm install --no-audit --no-fund;
+          fi;
         fi;
 
+        # 2) Prisma generate (генерирует клиент под текущую схему)
         echo "[web-stage] prisma generate...";
         npx --no-install prisma generate;
 
+        # 3) Применяем миграции с ретраями (иногда БД “живая”, но ещё не готова к DDL)
         echo "[web-stage] Prisma migrate (retry)...";
         ok=0;
         for i in 1 2 3 4 5 6 7 8 9 10; do
@@ -145,21 +212,33 @@ services:
           sleep 2;
         done;
 
+        # 4) Если migrate не прошёл — fallback на db push (нежелательно для продакшена,
+        # но удобно для окружений, где нужно “просто поднять”)
         if [ "$${ok}" -ne 1 ]; then
           echo "[web-stage] migrate did not succeed, trying db push...";
           npx --no-install prisma db push;
         fi;
 
+        # 5) Сборка Next.js (создаёт .next)
         echo "[web-stage] next build...";
         npm run build;
 
+        # 6) Старт прод-сервера Next.js (next start)
         echo "[web-stage] start server";
         exec npm run start
       '
 
+# =========================
+# 5) Volumes (персистентные данные)
+# =========================
 volumes:
+  # Данные Postgres
   db-data:
     name: pet-courses-project_db-data
+
+  # Данные MinIO
   minio-data:
     name: pet-courses-project_minio-data
+
+  # Unix socket для Postgres (и потенциального dbfix)
   pg-run:
