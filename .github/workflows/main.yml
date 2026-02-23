@@ -29,3 +29,9 @@ jobs:
       - name: Linting TypeScript
         run: npm run lint:types
         continue-on-error: true
+
+      - name: Prettier check
+        run: npx prettier --check .
+
+      - name: Build
+        run: npm run build
