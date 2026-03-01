@@ -43,7 +43,6 @@ jobs:
           private_key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
           host_fingerprint: ${{ secrets.STAGING_SSH_FINGERPRINT }}
           command: source ~/.nvm/nvm.sh; echo "Deploying to staging..."
-
   # e2e:
   #   needs: deploy
   #   timeout-minutes: 60
