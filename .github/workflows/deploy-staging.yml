@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: SSH Command
-        uses: P3TERX/ssh2actions@v1.0.0
+        uses: D3rHase/ssh-command-action@v0.3.1
         with:
           # hostname / IP of the server
           host: ${{ secrets.STAGING_SSH_HOST }}
