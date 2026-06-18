@@ -56,10 +56,10 @@ services:
     command: minio server --console-address ":9001" /data
 
     ports:
-      # 9000 — API (S3)
+      # 9000 — API (S3), нужен снаружи для публичных URL картинок
       - "9000:9000"
-      # 9001 — web UI консоль
-      - "9001:9001"
+      # 9001 — web UI: только localhost на стенде (как db:5432)
+      - "127.0.0.1:9001:9001"
 
     volumes:
       # Персистим бакеты/объекты MinIO в volume
@@ -162,7 +162,7 @@ services:
 
     ports:
       # Порт приложения наружу
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
     depends_on:
       db:
