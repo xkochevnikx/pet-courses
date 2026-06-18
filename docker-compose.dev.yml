@@ -43,6 +43,10 @@ services:
     env_file: .env
 
     environment:
+      # В dev нельзя наследовать NODE_ENV=production из базового compose:
+      # next dev должен запускаться именно как development.
+      NODE_ENV: development
+
       # -------------------------
       # DB внутри docker-сети
       # -------------------------
@@ -111,10 +115,12 @@ services:
     image: postgres:17-alpine
     container_name: db
 
-    ports:
-      # Проброс порта наружу (на хосте будет доступно localhost:5432)
-      # В dev так ок, но если хочешь безопаснее — можно как в stage: 127.0.0.1:5432:5432
-      - "5432:5432"
+    ports: !override
+      # Проброс порта наружу (на хосте будет доступно localhost:5433)
+      # !override важен: без него Compose склеивает ports из docker-compose.yml
+      # и docker-compose.dev.yml, из-за чего dev снова пытается занять 5432.
+      # Снаружи используем localhost:5433, внутри Docker всё равно db:5432.
+      - "127.0.0.1:5433:5432"
 
     environment:
       # Берём настройки пользователя/пароля/базы из .env
