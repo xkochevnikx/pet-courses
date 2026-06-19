@@ -43,7 +43,6 @@ jobs:
           host_fingerprint: ${{ secrets.STAGING_SSH_FINGERPRINT }}
           command: >-
             set -e;
-            source ~/.nvm/nvm.sh;
             cd ~/pet-courses;
             echo "Deploying to staging...";
             git pull;
