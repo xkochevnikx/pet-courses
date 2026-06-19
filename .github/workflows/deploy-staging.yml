@@ -34,15 +34,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH Command
+      - name: Deploy to staging
         uses: D3rHase/ssh-command-action@v0.2.2
         with:
-          # hostname / IP of the server
           host: ${{ secrets.STAGING_SSH_HOST }}
           user: ${{ secrets.STAGING_SSH_USERNAME }}
           private_key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
           host_fingerprint: ${{ secrets.STAGING_SSH_FINGERPRINT }}
-          command: source ~/.nvm/nvm.sh; echo "Deploying to staging..."
+          command: >-
+            set -e;
+            source ~/.nvm/nvm.sh;
+            cd ~/pet-courses;
+            echo "Deploying to staging...";
+            git pull;
+            docker compose -f docker-compose.yml up -d web;
+            docker compose -f docker-compose.yml ps
   # e2e:
   #   needs: deploy
   #   timeout-minutes: 60
