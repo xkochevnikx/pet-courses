@@ -46,7 +46,7 @@ jobs:
             cd ~/pet-courses;
             echo "Deploying to staging...";
             git pull;
-            docker compose -f docker-compose.yml up -d web;
+            docker compose -f docker-compose.yml restart web;
             docker compose -f docker-compose.yml ps
   # e2e:
   #   needs: deploy
