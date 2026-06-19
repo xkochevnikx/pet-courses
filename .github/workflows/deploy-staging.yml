@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Deploy to staging
-        uses: D3rHase/ssh-command-action@v0.2.2
+        uses: D3rHase/ssh-command-action@v0.3.1
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
           user: ${{ secrets.STAGING_SSH_USERNAME }}
