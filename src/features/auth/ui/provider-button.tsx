@@ -1,5 +1,5 @@
 "use client";
-import { Github } from "lucide-react";
+import { Bot, Github } from "lucide-react";
 import { ClientSafeProvider } from "next-auth/react";
 
 import { cn } from "@/shared/lib/utils";
@@ -21,6 +21,8 @@ export const ProviderButton = ({
     switch (id) {
       case "github":
         return <Github className="mr-2 h-4 w-4" />;
+      case "Bot":
+        return <Bot className="mr-2 h-4 w-4" />;
       default:
         return null;
     }
