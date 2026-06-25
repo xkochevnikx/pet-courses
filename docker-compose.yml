@@ -101,31 +101,15 @@ services:
     entrypoint: ["/bin/sh", "-lc"]
 
     command:
-      - >
-        # Прерывать скрипт при ошибках:
-        # -e: выход при ненулевом коде
-        # -u: ошибка при обращении к несуществующей переменной
-        # -o pipefail: ошибка, если любой элемент пайпа упал
-        set -euo pipefail;
-
-        # Логируем какое имя бакета ожидаем
-        echo "S3_BUCKET=${S3_BUCKET}";
-
-        # Проверяем, что alias myminio реально доступен (MinIO отвечает)
-        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; };
-
-        # Создаём бакет (idempotent: если уже есть — ок)
-        mc mb -p myminio/${S3_BUCKET} || true;
-
-        # Делаем бакет публичным на скачивание (анонимный доступ)
-        # На разных версиях mc команды/режимы могут отличаться,
-        # поэтому пробуем download, если не получилось — пробуем public,
-        # и только потом продолжаем (|| true)
-        mc anonymous set download myminio/${S3_BUCKET} ||
-        mc anonymous set public  myminio/${S3_BUCKET} || true;
-
-        # Показываем итоговый список бакетов
-        echo "Buckets now:"; mc ls myminio
+      - |
+        set -euo pipefail
+        echo "S3_BUCKET=$${S3_BUCKET}"
+        mc ls myminio >/dev/null 2>&1 || { echo "mc can't reach myminio"; exit 1; }
+        mc mb -p myminio/$${S3_BUCKET} || true
+        mc anonymous set download myminio/$${S3_BUCKET} ||
+        mc anonymous set public myminio/$${S3_BUCKET} || true
+        echo "Buckets now:"
+        mc ls myminio
 
     # One-shot: контейнер выполнился — завершился
     restart: "no"
@@ -228,8 +212,80 @@ services:
         exec npm run start
       '
 
+  # =========================
+  # 5) MongoDB (DB для bot / Payload CMS)
+  # =========================
+  mongo:
+    # Официальный MongoDB — хранилище для Payload 2.x (коллекции, пользователи админки)
+    image: mongo:latest
+
+    # Фиксированное имя контейнера (удобно для docker logs / docker exec)
+    container_name: mongo
+
+    ports:
+      # Пробрасываем порт БД наружу, НО только на localhost (безопаснее)
+      # С хоста: localhost:27017; bot подключается по mongodb://mongo/bot внутри сети compose
+      - "127.0.0.1:27017:27017"
+
+    command:
+      # WiredTiger — стандартный движок хранения MongoDB
+      - --storageEngine=wiredTiger
+
+    volumes:
+      # Персистентное хранилище данных MongoDB (если volume не удалить — данные живут между перезапусками)
+      - mongo_data:/data/db
+
+    # Отключаем логи mongo в docker (меньше шума в консоли)
+    logging:
+      driver: none
+
+  # =========================
+  # 6) bot (Payload 2 + Express, OAuth / Telegram)
+  # =========================
+  bot:
+    # Node 20 — Payload/sharp/pino и зависимости требуют >=20
+    image: node:20-bookworm-slim
+    container_name: bot
+
+    # Если упадёт — поднимется, но не в бесконечный loop если ты сам стопнул
+    restart: unless-stopped
+
+    # Рабочая директория внутри контейнера
+    working_dir: /app
+
+    volumes:
+      # Монтируем подпроект bot/ в /app (код “живой”, без пересборки образа)
+      - ./bot:/app
+
+      # Отдельный volume под node_modules, чтобы не тянуть/не портить node_modules на хосте
+      - bot_node_modules:/app/node_modules
+
+    ports:
+      # Порт bot-сервиса наружу, НО только на localhost (как web-stage)
+      # С хоста: localhost:3001; снаружи — через reverse proxy, если нужен публичный OAuth
+      - "127.0.0.1:3001:3001"
+
+    # Env бота: PAYLOAD_SECRET, PORT и т.п. (отдельно от основного .env)
+    env_file:
+      - bot/.env
+
+    environment:
+      # Порт внутри контейнера (должен совпадать с ports выше)
+      PORT: 3001
+      # Путь к конфигу Payload относительно /app
+      PAYLOAD_CONFIG_PATH: src/admin/payload.config.ts
+      # Подключение к mongo по имени сервиса в docker-сети (не localhost)
+      DATABASE_URI: mongodb://mongo/bot
+
+    depends_on:
+      # Ждём старта MongoDB (без healthcheck — просто порядок запуска)
+      - mongo
+
+    # Устанавливаем deps при старте и запускаем Express + Payload через ts-node
+    command: sh -c "npm install --include=optional && node ./node_modules/ts-node/dist/bin.js src/server.ts"
+
 # =========================
-# 5) Volumes (персистентные данные)
+# 7) Volumes (персистентные данные)
 # =========================
 volumes:
   # Данные Postgres
@@ -242,3 +298,9 @@ volumes:
 
   # Unix socket для Postgres (и потенциального dbfix)
   pg-run:
+
+  # Данные MongoDB (bot / Payload)
+  mongo_data:
+
+  # node_modules бота (отдельно от хоста)
+  bot_node_modules:
