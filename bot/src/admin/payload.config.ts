@@ -7,6 +7,7 @@ import { slateEditor } from "@payloadcms/richtext-slate";
 import { buildConfig } from "payload/config";
 
 import { OauthClients } from "./collections/oauthClients";
+import { OauthCodeClient } from "./collections/oauthCodeClient";
 import { Users } from "./collections/users";
 
 export default buildConfig({
@@ -15,7 +16,7 @@ export default buildConfig({
     bundler: webpackBundler(),
   },
   editor: slateEditor({}),
-  collections: [Users, OauthClients],
+  collections: [Users, OauthClients, OauthCodeClient],
   typescript: {
     outputFile: path.resolve(__dirname, "payload-types.ts"),
   },

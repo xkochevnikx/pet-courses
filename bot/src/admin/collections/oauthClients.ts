@@ -15,5 +15,13 @@ export const OauthClients: CollectionConfig = {
       admin: { readOnly: true },
       defaultValue: () => window.crypto.randomUUID(),
     },
+
+    {
+      required: true,
+      name: "redirect_uris",
+      type: "array",
+      defaultValue: [],
+      fields: [{ name: "uri", type: "text", required: true }],
+    },
   ],
 };

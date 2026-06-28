@@ -86,22 +86,28 @@ export class NextAuthConfigImp extends NextAuthConfig {
         : []),
       ...(privateEnv.BOT_CLIENT_ID &&
       privateEnv.BOT_CLIENT_SECRET &&
-      privateEnv.BOT_URL
+      privateEnv.AUTHORIZATION_BOT_URL
         ? [
             {
-              id: "Bot",
-              name: "Telegram",
+              id: "TelegramBot",
+              name: "Telegram Bot",
               type: "oauth",
-              authorization: `${privateEnv.BOT_URL}/oauth/authorize`,
-              token: `${privateEnv.BOT_URL}/oauth/access_token`,
-              userinfo: `${privateEnv.BOT_URL}/oauth/user`,
+              checks: ["pkce", "state"],
+              authorization: {
+                url: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/authorize`,
+                params: {
+                  scope: "all ", // если нужно больше, чем openid
+                },
+              },
+              token: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/access_token`,
+              userinfo: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/user`,
               clientId: privateEnv.BOT_CLIENT_ID,
               clientSecret: privateEnv.BOT_CLIENT_SECRET,
               profile(profile: BotProfile) {
                 return {
                   id: profile.id,
                   name: profile.username ?? null,
-                  email: profile.email,
+                  email: profile.email ?? `${profile.id}@telegram.local`,
                   role: ROLES.USER,
                 };
               },

@@ -10,6 +10,7 @@ export interface Config {
   collections: {
     users: User;
     oauthClients: OauthClient;
+    oauthCodeClient: OauthCodeClient;
     "payload-preferences": PayloadPreference;
     "payload-migrations": PayloadMigration;
   };
@@ -41,6 +42,29 @@ export interface OauthClient {
   client_name: string;
   client_id: string;
   client_secret: string;
+  redirect_uris: {
+    uri: string;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "oauthCodeClient".
+ */
+export interface OauthCodeClient {
+  id: string;
+  code: string;
+  status: "pending" | "confirmed";
+  expires_at: string;
+  user?: string | null;
+  redirect_uri?: string | null;
+  client_id?: string | null;
+  client_name?: string | null;
+  code_challenge?: string | null;
+  code_challenge_method?: string | null;
+  state?: string | null;
   updatedAt: string;
   createdAt: string;
 }
