@@ -7,6 +7,7 @@ const parsePrivateEnvSchema = z.object({
   AUTHORIZATION_BOT_URL: z.string().optional(),
   BOT_CLIENT_ID: z.string().optional(),
   BOT_CLIENT_SECRET: z.string().optional(),
+  BOT_PUBLIC_URL: z.string().optional(),
   EMAIL_SERVER_USER: z.string().optional(),
   EMAIL_SERVER_PASSWORD: z.string().optional(),
   EMAIL_SERVER_HOST: z.string().optional(),

@@ -94,7 +94,7 @@ export class NextAuthConfigImp extends NextAuthConfig {
               type: "oauth",
               checks: ["pkce", "state"],
               authorization: {
-                url: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/authorize`,
+                url: `${privateEnv.BOT_PUBLIC_URL}/oauth/authorize`,
                 params: {
                   scope: "all ", // если нужно больше, чем openid
                 },
