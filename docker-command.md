@@ -24,13 +24,15 @@
 | `minio`         | `minio`                 | S3-совместимое хранилище        |
 | `createbuckets` | `createbuckets`         | One-shot: создаёт бакет в MinIO |
 | `web`           | `web-dev` / `web-stage` | Next.js (dev или stage)         |
+| `mongo`         | `mongo`                 | MongoDB для bot / Payload       |
+| `bot`           | `bot`                   | Payload 2 + Express (OAuth)     |
 
 **Compose-файлы:**
 
-| Файл                     | Где используется | Что делает                                    |
-| ------------------------ | ---------------- | --------------------------------------------- |
-| `docker-compose.yml`     | стенд + база     | db, minio, createbuckets, web (build + start) |
-| `docker-compose.dev.yml` | только локально  | override для `web`: hot reload, `npm run dev` |
+| Файл                     | Где используется | Что делает                                                  |
+| ------------------------ | ---------------- | ----------------------------------------------------------- |
+| `docker-compose.yml`     | стенд + база     | db, minio, createbuckets, web, mongo, bot                   |
+| `docker-compose.dev.yml` | только локально  | override только для `web` → `web-dev` (hot reload, dev env) |
 
 **Порядок `-f` важен:** сначала базовый файл, потом override.
 
@@ -42,13 +44,15 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml <команда>
 docker compose -f docker-compose.yml <команда>
 ```
 
+**Слияние файлов:** второй `-f` дополняет первый. Списки вроде `ports` по умолчанию **склеиваются** (отсюда дубли и `EADDRINUSE`). В dev `ports` не дублируем — берутся из `docker-compose.yml`. Если в dev нужен другой порт — `ports: !override`.
+
 ---
 
 ## 2. Быстрый старт
 
 ### Локальная разработка — одной командой
 
-Поднимает db → minio → createbuckets → web-dev на `localhost:3000`.
+Поднимает db → minio → createbuckets → web-dev на `localhost:3000`. Сервисы `mongo` и `bot` — из базового compose (поднять отдельно: `up -d mongo bot`).
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
@@ -84,7 +88,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
 - `npm install` → `prisma migrate deploy` (или `db push`) → `npm run dev`
 - `NODE_ENV=development`, hot reload через polling
 - `DATABASE_URL` внутри контейнера: `postgres://postgres:postgres@db:5432/postgres`
-- порт БД с хоста: `localhost:5433` → `db:5432`
+- порт БД с хоста: `localhost:5432` → `db:5432` (из `docker-compose.yml`)
 
 ### 3.3. Логи и env
 

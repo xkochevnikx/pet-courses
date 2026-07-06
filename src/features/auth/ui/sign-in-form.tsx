@@ -1,7 +1,4 @@
-"use server";
-
 import { getProviders } from "next-auth/react";
-import { Suspense } from "react";
 
 import { cn } from "@/shared/lib/utils";
 
@@ -17,19 +14,15 @@ export const SignInForm = async ({ className }: { className?: string }) => {
   });
   return (
     <div className={cn(className, "flex flex-col gap-2")}>
-      <Suspense fallback={<div>Загрузка...</div>}>
-        <EmailSignInForm className="flex flex-col gap-6" />
-      </Suspense>
+      <EmailSignInForm className="flex flex-col gap-6" />
       <Divider />
-      <Suspense fallback={<div>Загрузка...</div>}>
-        {oauthProviders?.map((provider) => (
-          <ProviderButton
-            key={provider.id}
-            provider={provider}
-            className="min-w-fit"
-          />
-        ))}
-      </Suspense>
+      {oauthProviders?.map((provider) => (
+        <ProviderButton
+          key={provider.id}
+          provider={provider}
+          className="min-w-fit"
+        />
+      ))}
     </div>
   );
 };

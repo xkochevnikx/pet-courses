@@ -10,9 +10,17 @@ import {
   CreateUserService,
   NextAuthConfig,
 } from "@/shared/types/abstract-classes";
-import { CreateUser, UserEntity } from "@/shared/types/domain-types";
+import { CreateUser, ROLES, UserEntity } from "@/shared/types/domain-types";
+
+import type { OAuthConfig } from "next-auth/providers/oauth";
 
 const prismaAdapter = PrismaAdapter(dbClient);
+
+type BotProfile = {
+  id: string;
+  username?: string;
+  email: string;
+};
 
 @injectable()
 export class NextAuthConfigImp extends NextAuthConfig {
@@ -74,6 +82,36 @@ export class NextAuthConfigImp extends NextAuthConfig {
               clientId: privateEnv.GITHUB_ID,
               clientSecret: privateEnv.GITHUB_SECRET,
             }),
+          ]
+        : []),
+      ...(privateEnv.BOT_CLIENT_ID &&
+      privateEnv.BOT_CLIENT_SECRET &&
+      privateEnv.AUTHORIZATION_BOT_URL
+        ? [
+            {
+              id: "TelegramBot",
+              name: "Telegram Bot",
+              type: "oauth",
+              checks: ["pkce", "state"],
+              authorization: {
+                url: `${privateEnv.BOT_PUBLIC_URL}/oauth/authorize`,
+                params: {
+                  scope: "all ", // если нужно больше, чем openid
+                },
+              },
+              token: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/access_token`,
+              userinfo: `${privateEnv.AUTHORIZATION_BOT_URL}/oauth/user`,
+              clientId: privateEnv.BOT_CLIENT_ID,
+              clientSecret: privateEnv.BOT_CLIENT_SECRET,
+              profile(profile: BotProfile) {
+                return {
+                  id: profile.id,
+                  name: profile.username ?? null,
+                  email: profile.email ?? `${profile.id}@telegram.local`,
+                  role: ROLES.USER,
+                };
+              },
+            } satisfies OAuthConfig<BotProfile>,
           ]
         : []),
     ],
