@@ -37,7 +37,7 @@ const start = async () => {
 
   flowLog("init", "Payload готов — подключаем Telegram и /oauth");
 
-  await startBot(payloadInstance);
+  await startBot(payloadInstance); // не бросает при недоступности Telegram API
 
   const oauthRouter = await OauthRouter(payloadInstance);
 

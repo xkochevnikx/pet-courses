@@ -6,7 +6,7 @@
 import payload from "payload";
 import { Telegraf } from "telegraf";
 
-import { flowLog } from "../lib/flow-log";
+import { flowLog, formatTelegramConnectError } from "../lib/flow-log";
 
 import { OauthService } from "./services/oauth";
 
@@ -15,6 +15,13 @@ export const startBot = async (payloadInstance: typeof payload) => {
 
   const bot = new Telegraf(process.env.BOT_TOKEN);
   const oauthService = new OauthService(payloadInstance);
+
+  bot.catch((error, ctx) => {
+    flowLog("telegram", "Ошибка в обработчике Telegram", {
+      updateType: ctx.updateType,
+      ...formatTelegramConnectError(error),
+    });
+  });
 
   bot.start(async (ctx) => {
     if (!ctx.payload) {
@@ -73,8 +80,18 @@ export const startBot = async (payloadInstance: typeof payload) => {
     );
   });
 
-  bot.launch();
-  flowLog("init", "Telegram bot.launch() — бот слушает обновления");
+  try {
+    await bot.launch();
+    flowLog("init", "Telegram подключён — long polling активен", {
+      username: bot.botInfo?.username,
+    });
+  } catch (error) {
+    flowLog(
+      "init",
+      "Не удалось подключиться к Telegram API — сервис продолжает работу (OAuth и админка доступны)",
+      formatTelegramConnectError(error),
+    );
+  }
 
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));

@@ -24,3 +24,31 @@ export const flowLog = (
 ) => {
   logger.info({ step, ...data }, `[OAuth flow ${step}] ${message}`);
 };
+
+/** Человекочитаемый разбор ошибок Telegraf / node-fetch к api.telegram.org */
+export const formatTelegramConnectError = (
+  error: unknown,
+): Record<string, unknown> => {
+  if (!(error instanceof Error)) {
+    return { detail: String(error) };
+  }
+
+  const errno = error as Error & { code?: string };
+  const reasonMatch = error.message.match(/reason: (.+)$/);
+  const reason = reasonMatch?.[1] ?? errno.code ?? error.message;
+
+  const networkBlocked =
+    errno.code === "ETIMEDOUT" ||
+    errno.code === "ECONNREFUSED" ||
+    errno.code === "ENOTFOUND" ||
+    /ETIMEDOUT|ECONNREFUSED|ENOTFOUND/.test(reason);
+
+  return {
+    reason,
+    code: errno.code,
+    errorName: error.name,
+    hint: networkBlocked
+      ? "Нет доступа к api.telegram.org с сервера (часто блокировка из РФ) — нужен SOCKS/VPN для бота"
+      : "Проверьте BOT_TOKEN в bot/.env и доступ к https://api.telegram.org",
+  };
+};
