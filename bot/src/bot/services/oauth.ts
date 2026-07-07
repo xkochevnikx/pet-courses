@@ -77,6 +77,8 @@ import { randomUUID } from "node:crypto";
 
 import { Payload } from "payload";
 
+import { flowLog } from "../../lib/flow-log";
+
 import type { OauthClient, OauthCodeClient } from "payload/generated-types";
 
 /** Поля сессии входа, которые приходят с /oauth/authorize (без автогенерируемых). */
@@ -108,6 +110,10 @@ export class OauthService {
    * @returns документ `oauthClients` или `undefined`, если не найден
    */
   async findOauthClient(client_id: string) {
+    flowLog("3/8", "OauthService: ищем клиента в oauthClients по client_id", {
+      client_id,
+    });
+
     const { docs } = await this.payloadInstance.find({
       collection: "oauthClients",
       where: {
@@ -116,6 +122,11 @@ export class OauthService {
         },
       },
       limit: 1,
+    });
+
+    flowLog("3/8", "OauthService: результат поиска клиента", {
+      client_id,
+      found: Boolean(docs[0]),
     });
 
     return docs[0] as unknown as OauthClient;
@@ -137,6 +148,15 @@ export class OauthService {
     client_id: string;
     client_secret: string;
   }) {
+    flowLog(
+      "7/8",
+      "OauthService: проверяем client_id + client_secret в oauthClients",
+      {
+        client_id,
+        client_secret,
+      },
+    );
+
     const { docs } = await this.payloadInstance.find({
       collection: "oauthClients",
       where: {
@@ -147,6 +167,11 @@ export class OauthService {
           equals: client_secret,
         },
       },
+    });
+
+    flowLog("7/8", "OauthService: клиент по secret", {
+      client_id,
+      found: Boolean(docs[0]),
     });
 
     return docs[0] as unknown as OauthClient;
@@ -164,6 +189,15 @@ export class OauthService {
    */
   async createOauthClient(data: CreateOauthClientData) {
     const code = randomUUID().replace(/-/g, "").slice(0, 32);
+
+    flowLog("3/8", "OauthService: создаём oauthCodeClient status=pending", {
+      client_id: data.client_id,
+      redirect_uri: data.redirect_uri,
+      state: data.state,
+      code,
+      ttlMinutes: SESSION_TTL_MS / 60_000,
+    });
+
     await this.payloadInstance.create({
       collection: "oauthCodeClient",
       data: {
@@ -172,6 +206,9 @@ export class OauthService {
         status: "pending",
         expires_at: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
       },
+    });
+    flowLog("3/8", "OauthService: сессия pending сохранена в Mongo", {
+      code,
     });
     return code;
   }
@@ -182,6 +219,9 @@ export class OauthService {
    * Authorization code одноразовый — повторный обмен тем же `code` должен быть невозможен.
    */
   async deleteOauthClient(id: string) {
+    flowLog("7/8", "OauthService: удаляем одноразовую сессию oauthCodeClient", {
+      sessionId: id,
+    });
     await this.payloadInstance.delete({
       collection: "oauthCodeClient",
       id,
@@ -198,6 +238,10 @@ export class OauthService {
    * Если `expires_at` в прошлом — удаляет документ и возвращает `null`.
    */
   async getOauthClientByCode(code: string): Promise<OauthCodeClient | null> {
+    flowLog("5/8", "OauthService: ищем сессию по code (Telegram deep link)", {
+      code,
+    });
+
     const doc = await this.payloadInstance
       .find({
         collection: "oauthCodeClient",
@@ -207,11 +251,20 @@ export class OauthService {
       })
       .then((res) => res.docs[0]);
 
-    if (!doc) return null;
+    if (!doc) {
+      flowLog("5/8", "OauthService: сессия по code не найдена", {
+        code,
+      });
+      return null;
+    }
 
     const client = doc as unknown as OauthCodeClient;
 
     if (new Date(client.expires_at) < new Date()) {
+      flowLog("5/8", "OauthService: сессия просрочена — удаляем", {
+        code,
+        expires_at: client.expires_at,
+      });
       await this.payloadInstance.delete({
         collection: "oauthCodeClient",
         id: client.id,
@@ -219,6 +272,12 @@ export class OauthService {
 
       return null;
     }
+
+    flowLog("5/8", "OauthService: сессия найдена", {
+      code,
+      status: client.status,
+      sessionId: client.id,
+    });
 
     return client;
   }
@@ -238,6 +297,11 @@ export class OauthService {
     code: string;
     client_id: string;
   }): Promise<OauthCodeClient | null> {
+    flowLog("7/8", "OauthService: ищем confirmed-сессию для token exchange", {
+      code,
+      client_id,
+    });
+
     const session = await this.payloadInstance
       .find({
         collection: "oauthCodeClient",
@@ -248,6 +312,11 @@ export class OauthService {
         },
       })
       .then((res) => res.docs[0]);
+
+    flowLog("7/8", "OauthService: confirmed-сессия для token", {
+      code,
+      found: Boolean(session),
+    });
 
     return session as unknown as OauthCodeClient;
   }
@@ -264,9 +333,24 @@ export class OauthService {
    * @returns обновлённая сессия или `null` (истекла / уже использована / не найдена)
    */
   async updateOauthCodeClient({ code, user }) {
+    flowLog("5/8", "OauthService: подтверждаем сессию — pending → confirmed", {
+      code,
+      telegramUserId: user?.id,
+    });
+
     const session = await this.getOauthClientByCode(code);
 
-    if (!session || session.status !== "pending") return null;
+    if (!session || session.status !== "pending") {
+      flowLog(
+        "5/8",
+        "OauthService: нельзя подтвердить — нет сессии или status≠pending",
+        {
+          code,
+          status: session?.status,
+        },
+      );
+      return null;
+    }
 
     await this.payloadInstance.update({
       collection: "oauthCodeClient",
@@ -275,6 +359,10 @@ export class OauthService {
         user: JSON.stringify(user),
         status: "confirmed",
       },
+    });
+
+    flowLog("5/8", "OauthService: user из Telegram записан, status=confirmed", {
+      sessionId: session.id,
     });
 
     return await this.getOauthClientByCode(code);

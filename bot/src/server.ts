@@ -5,15 +5,11 @@ import pinoHttp from "pino-http";
 
 import { OauthRouter } from "./bot/controllers/oauth";
 import { startBot } from "./bot/start-bot";
+import { flowLog } from "./lib/flow-log";
 
 dotenv.config();
 const app = express();
-const PORT = Number(process.env.PORT) || 3002;
-
-// Redirect root to Admin panel
-// app.get("/", (_, res) => {
-//   res.redirect("/admin");
-// });
+const PORT = Number(process.env.PORT) || 3001;
 
 app.use(
   pinoHttp({
@@ -29,7 +25,8 @@ app.use(
 );
 
 const start = async () => {
-  // Initialize Payload
+  flowLog("init", "Старт bot-сервера: Payload → Telegram → OAuth routes");
+
   const payloadInstance = await payload.init({
     secret: process.env.PAYLOAD_SECRET,
     express: app,
@@ -38,15 +35,20 @@ const start = async () => {
     },
   });
 
+  flowLog("init", "Payload готов — подключаем Telegram и /oauth");
+
   await startBot(payloadInstance);
 
   const oauthRouter = await OauthRouter(payloadInstance);
 
   app.use("/oauth", oauthRouter);
-
-  // Add your own express routes here
+  flowLog(
+    "init",
+    "Роуты смонтированы: /oauth/authorize, /oauth/access_token, /oauth/user",
+  );
 
   app.listen(PORT, () => {
+    flowLog("init", `HTTP сервер слушает порт ${PORT}`);
     payload.logger.info(`Server listening on port ${PORT}`);
   });
 };
