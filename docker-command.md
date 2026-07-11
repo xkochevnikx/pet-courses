@@ -147,7 +147,50 @@ NEXTAUTH_URL=https://<ваш-домен>
 NEXT_PUBLIC_URL=https://<ваш-домен>
 TEST_ENV_BASE_URL=https://<ваш-домен>
 S3_PUBLIC_URL=https://<публичный-url-бакета>/images
+
+# OAuth Telegram Bot
+BOT_PUBLIC_URL=https://svt-staging.ru
+AUTHORIZATION_BOT_URL=http://bot:3001
+BOT_CLIENT_ID=svt
+BOT_CLIENT_SECRET=<как в Payload oauthClients>
 ```
+
+> `BOT_PUBLIC_URL` — URL для **браузера** (authorize через nginx).  
+> `AUTHORIZATION_BOT_URL` — URL для **контейнера web** → `bot:3001` (token/user).
+
+### 4.6. Nginx: бот + Payload Admin + OAuth
+
+Бот на `127.0.0.1:3001`. Готовый конфиг: **`deploy/nginx/bot-payload.conf`**
+
+| Путь                                 | Куда      | Назначение         |
+| ------------------------------------ | --------- | ------------------ |
+| `/admin`                             | bot :3001 | Payload Admin      |
+| `/api/users`, `/api/oauthClients`, … | bot :3001 | Payload API        |
+| `/oauth/`                            | bot :3001 | OAuth Telegram     |
+| `/api/auth/`, `/api/trpc/`           | web :3000 | Next.js (как было) |
+| `/`                                  | web :3000 | сайт               |
+
+В `bot/.env` на стенде:
+
+```env
+PAYLOAD_PUBLIC_URL=https://svt-staging.ru
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+docker compose -f docker-compose.yml restart bot
+```
+
+Проверка:
+
+```bash
+curl -sI https://svt-staging.ru/admin | head -3
+curl -sI "https://svt-staging.ru/oauth/authorize?client_id=x" | head -3
+```
+
+Админка: https://svt-staging.ru/admin — первый пользователь: `/admin/create-first-user`.
+
+> **Безопасность:** админка публична — сильный пароль; опционально basic auth в nginx (см. комментарий в `bot-payload.conf`).
 
 > В базовом compose `DATABASE_URL` не переопределяется — на стенде в `.env` обязательно хост `db`, не `localhost`.
 

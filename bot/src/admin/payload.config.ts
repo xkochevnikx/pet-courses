@@ -11,6 +11,7 @@ import { OauthCodeClient } from "./collections/oauthCodeClient";
 import { Users } from "./collections/users";
 
 export default buildConfig({
+  serverURL: process.env.PAYLOAD_PUBLIC_URL,
   admin: {
     user: Users.slug,
     bundler: webpackBundler(),

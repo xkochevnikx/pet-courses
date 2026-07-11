@@ -48,7 +48,9 @@ export const formatTelegramConnectError = (
     code: errno.code,
     errorName: error.name,
     hint: /proxy connection timed out/i.test(reason)
-      ? "TELEGRAM_PROXY_URL недоступен с этой машины — локально уберите прокси из bot/.env"
+      ? process.env.TELEGRAM_PROXY_URL
+        ? `SOCKS ${process.env.TELEGRAM_PROXY_URL} недоступен из контейнера bot — проверьте firewall на 130.17.14.191:31788 (allowlist IP стенда) и: docker exec bot curl -x ${process.env.TELEGRAM_PROXY_URL} https://api.telegram.org`
+        : "Прокси не отвечает — проверьте TELEGRAM_PROXY_URL и доступность порта с сервера"
       : networkBlocked
         ? "Нет доступа к api.telegram.org — задайте TELEGRAM_PROXY_URL (SOCKS5) в bot/.env на стенде"
         : "Проверьте BOT_TOKEN в bot/.env и доступ к https://api.telegram.org",
