@@ -41,14 +41,16 @@ export const formatTelegramConnectError = (
     errno.code === "ETIMEDOUT" ||
     errno.code === "ECONNREFUSED" ||
     errno.code === "ENOTFOUND" ||
-    /ETIMEDOUT|ECONNREFUSED|ENOTFOUND/.test(reason);
+    /ETIMEDOUT|ECONNREFUSED|ENOTFOUND|Proxy connection timed out/i.test(reason);
 
   return {
     reason,
     code: errno.code,
     errorName: error.name,
-    hint: networkBlocked
-      ? "Нет доступа к api.telegram.org с сервера (часто блокировка из РФ) — нужен SOCKS/VPN для бота"
-      : "Проверьте BOT_TOKEN в bot/.env и доступ к https://api.telegram.org",
+    hint: /proxy connection timed out/i.test(reason)
+      ? "TELEGRAM_PROXY_URL недоступен с этой машины — локально уберите прокси из bot/.env"
+      : networkBlocked
+        ? "Нет доступа к api.telegram.org — задайте TELEGRAM_PROXY_URL (SOCKS5) в bot/.env на стенде"
+        : "Проверьте BOT_TOKEN в bot/.env и доступ к https://api.telegram.org",
   };
 };

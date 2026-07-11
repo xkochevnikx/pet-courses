@@ -10,10 +10,34 @@ import { flowLog, formatTelegramConnectError } from "../lib/flow-log";
 
 import { OauthService } from "./services/oauth";
 
+const getTelegrafOptions = async () => {
+  const proxyUrl = process.env.TELEGRAM_PROXY_URL?.trim();
+  if (!proxyUrl) return undefined;
+
+  try {
+    const { hostname, port, protocol } = new URL(proxyUrl);
+    flowLog("init", "Telegram API через прокси", {
+      protocol,
+      host: hostname,
+      port: port || (protocol === "socks5:" ? "1080" : "80"),
+    });
+  } catch {
+    flowLog("init", "Telegram API через прокси (TELEGRAM_PROXY_URL задан)");
+  }
+
+  const { SocksProxyAgent } = await import("socks-proxy-agent");
+
+  return {
+    telegram: {
+      agent: new SocksProxyAgent(proxyUrl, { timeout: 10_000 }),
+    },
+  };
+};
+
 export const startBot = async (payloadInstance: typeof payload) => {
   flowLog("init", "Запуск Telegraf long-polling — ждём /start от пользователя");
 
-  const bot = new Telegraf(process.env.BOT_TOKEN);
+  const bot = new Telegraf(process.env.BOT_TOKEN, await getTelegrafOptions());
   const oauthService = new OauthService(payloadInstance);
 
   bot.catch((error, ctx) => {
@@ -80,18 +104,20 @@ export const startBot = async (payloadInstance: typeof payload) => {
     );
   });
 
-  try {
-    await bot.launch();
-    flowLog("init", "Telegram подключён — long polling активен", {
-      username: bot.botInfo?.username,
+  void bot
+    .launch()
+    .then(() => {
+      flowLog("init", "Telegram подключён — long polling активен", {
+        username: bot.botInfo?.username,
+      });
+    })
+    .catch((error) => {
+      flowLog(
+        "init",
+        "Не удалось подключиться к Telegram API — сервис продолжает работу (OAuth и админка доступны)",
+        formatTelegramConnectError(error),
+      );
     });
-  } catch (error) {
-    flowLog(
-      "init",
-      "Не удалось подключиться к Telegram API — сервис продолжает работу (OAuth и админка доступны)",
-      formatTelegramConnectError(error),
-    );
-  }
 
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));
