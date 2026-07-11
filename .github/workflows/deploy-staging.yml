@@ -46,7 +46,8 @@ jobs:
             cd ~/pet-courses;
             echo "Deploying to staging...";
             git pull;
-            docker compose -f docker-compose.yml restart web;
+            echo "Recreating containers (env from .env / bot/.env; volumes unchanged — Mongo/Payload data kept)...";
+            docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans;
             docker compose -f docker-compose.yml ps
   # e2e:
   #   needs: deploy
