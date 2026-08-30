@@ -132,7 +132,7 @@ services:
       - ./:/app
 
       # Отдельный volume под node_modules, чтобы не тянуть/не портить node_modules на хосте
-      - /app/node_modules
+      - web_node_modules:/app/node_modules
 
     # Все твои env (NEXTAUTH_URL, DATABASE_URL, S3_* и т.д.)
     env_file: .env
@@ -172,16 +172,9 @@ services:
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
         echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
 
-        # 1) Зависимости: если prisma отсутствует — значит node_modules пустой → ставим deps
+        # 1) Зависимости: всегда чистая установка по lockfile (npm ci удаляет старый node_modules)
         echo "[web-stage] deps...";
-        if [ ! -f node_modules/.bin/prisma ]; then
-          echo "[web-stage] installing deps (prisma missing)...";
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund;
-          else
-            npm install --no-audit --no-fund;
-          fi;
-        fi;
+        npm ci --no-audit --no-fund;
 
         # 2) Prisma generate (генерирует клиент под текущую схему)
         echo "[web-stage] prisma generate...";
@@ -304,3 +297,6 @@ volumes:
 
   # node_modules бота (отдельно от хоста)
   bot_node_modules:
+
+  # node_modules web-stage (отдельно от хоста)
+  web_node_modules:
