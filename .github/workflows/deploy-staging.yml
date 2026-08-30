@@ -46,9 +46,8 @@ jobs:
             cd ~/pet-courses;
             echo "Deploying to staging...";
             git pull;
-            echo "Recreating containers (env from .env / bot/.env; volumes unchanged — Mongo/Payload data kept)...";
-            docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans;
-            docker compose -f docker-compose.yml ps
+            echo "Recreating containers (env from .env / bot/.env; DB/Mongo volumes kept)...";
+            docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans
   # e2e:
   #   needs: deploy
   #   timeout-minutes: 60
