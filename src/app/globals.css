@@ -1,6 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
 
 @layer base {
   :root {
