@@ -63,7 +63,7 @@ jobs:
   #     - name: Install Playwright Browsers
   #       run: npx playwright install --with-deps
 
-  #     - name: Run Playwright tests
+  #     - name: Run Playwright test
   #       run: npx playwright test
   #       env:
   #         TEST_ENV_BASE_URL: https://svt-staging.ru
