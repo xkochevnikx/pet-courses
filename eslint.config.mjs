@@ -11,6 +11,7 @@ import boundaries from "eslint-plugin-boundaries";
 import importPlugin from "eslint-plugin-import";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import reactYouMightNotNeedAnEffect from "eslint-plugin-react-you-might-not-need-an-effect";
 
 // Определяем текущую директорию файла
 const __filename = fileURLToPath(import.meta.url);
@@ -62,6 +63,7 @@ const eslintConfig = [
       "react-hooks": reactHooks, // 🟢 Плагин для React Hooks
       boundaries: boundaries, // 🟢 Плагин для управления архитектурными границами
       import: importPlugin, // 🟢 Плагин для контроля импортов
+      reactYouMightNotNeedAnEffect: reactYouMightNotNeedAnEffect,
     },
 
     // ⚙️ Настройки для работы с TypeScript и модулями
@@ -94,7 +96,7 @@ const eslintConfig = [
       ...react.configs.recommended.rules, // 🟢 Рекомендации для React
       ...reactHooks.configs.recommended.rules, // 🟢 Проверки для React Hooks
       ...prettier.rules, // 🟢 Отключение правил, конфликтующих с Prettier
-
+      "reactYouMightNotNeedAnEffect/no-derived-state": "warn",
       "react/react-in-jsx-scope": "off", // 🔥 Отключаем, так как с React 17+ не нужен `import React`
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "react-hooks/rules-of-hooks": "warn",

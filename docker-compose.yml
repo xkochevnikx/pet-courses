@@ -1,44 +1,69 @@
 services:
   # =========================
-  # 1) Postgres (DB)
+  # 1) Postgres — сессии / юзеры (Prisma, NextAuth)
   # =========================
-  db:
+  db-sessions:
     # Берём официальный Postgres в Alpine (легковесный)
     image: postgres:17-alpine
 
     # Фиксированное имя контейнера (удобно для docker logs / docker exec)
-    container_name: db
+    container_name: db-sessions
 
-    # Подхватываем переменные POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB и т.п.
+    # Общие POSTGRES_USER / POSTGRES_PASSWORD из .env
     env_file: .env
 
+    environment:
+      # Своя database внутри этого инстанса (не путать с db-courses)
+      POSTGRES_DB: sessions
+
     ports:
-      # Пробрасываем порт БД наружу, НО только на localhost (безопаснее)
-      # С хоста можно подключаться: localhost:5432
+      # С хоста: localhost:5432 → Prisma / IDE
       - "127.0.0.1:5432:5432"
 
     volumes:
-      # 1) Персистентное хранилище данных Postgres (таблицы, индексы и т.д.)
-      # Если volume не удалить — данные будут жить между перезапусками compose
-      - db-data:/var/lib/postgresql/data
+      # Персистентные данные только для sessions
+      - db-sessions-data:/var/lib/postgresql/data
 
-      # 2) Общий volume для unix-socket Postgres (файл сокета в /var/run/postgresql)
-      # Тебе нужен был для dbfix, чтобы можно было заходить “локально” через сокет (trust),
-      # даже если по сети/паролю что-то сломано.
+      # Unix-socket (dbfix / локальный trust через сокет)
       - pg-run:/var/run/postgresql
 
     healthcheck:
-      test: [
-          "CMD-SHELL",
-          # Проверка “готова ли БД принимать соединения”.
-          # -U и -d берём из .env, -h 127.0.0.1 обращается к Postgres внутри контейнера.
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1",
-        ]
-      interval: 10s # как часто проверять
-      timeout: 5s # сколько ждать ответа
-      retries: 20 # сколько раз пробовать, прежде чем считать unhealthy
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d sessions -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
-    # Если контейнер упал — поднимай обратно
+    restart: always
+
+  # =========================
+  # 1b) Postgres — курсы / CMS (Payload 3 в корневом Next)
+  # =========================
+  db-courses:
+    image: postgres:17-alpine
+
+    container_name: db-courses
+
+    env_file: .env
+
+    environment:
+      POSTGRES_DB: courses
+
+    ports:
+      # Другой порт на хосте, чтобы не конфликтовать с db-sessions:5432
+      # С хоста: localhost:5433
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - db-courses-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d courses -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
     restart: always
 
   # =========================
@@ -46,7 +71,7 @@ services:
   # =========================
   minio:
     # MinIO сервер
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: minio
 
     # Берём MINIO_ROOT_USER / MINIO_ROOT_PASSWORD и т.п. из .env
@@ -58,7 +83,7 @@ services:
     ports:
       # 9000 — API (S3), нужен снаружи для публичных URL картинок
       - "9000:9000"
-      # 9001 — web UI: только localhost на стенде (как db:5432)
+      # 9001 — web UI: только localhost на стенде (как db-sessions:5432)
       - "127.0.0.1:9001:9001"
 
     volumes:
@@ -79,7 +104,7 @@ services:
   # =========================
   createbuckets:
     # MinIO Client (mc) — утилита для управления MinIO
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     container_name: createbuckets
 
     depends_on:
@@ -141,6 +166,9 @@ services:
       # Next.js предупреждает/ломается при нестандартном NODE_ENV,
       # поэтому ставим production, раз ты запускаешь build+start.
       NODE_ENV: production
+      # Хосты сервисов в docker-сети (не 127.0.0.1 из .env для локального npm)
+      DATABASE_URL: postgres://postgres:postgres@db-sessions:5432/sessions
+      PAYLOAD_DATABASE_URL: postgres://postgres:postgres@db-courses:5432/courses
       # Для “stage/dev/prod” окружений лучше использовать отдельную переменную:
       # APP_ENV: stage
 
@@ -149,8 +177,9 @@ services:
       - "127.0.0.1:3000:3000"
 
     depends_on:
-      db:
-        # Ждём healthy от Postgres
+      db-sessions:
+        condition: service_healthy
+      db-courses:
         condition: service_healthy
       minio:
         # Ждём healthy от MinIO
@@ -169,6 +198,7 @@ services:
         echo "  NODE_ENV=$${NODE_ENV:-}";
         echo "  NEXTAUTH_URL=$${NEXTAUTH_URL:-}";
         echo "  DATABASE_URL=$${DATABASE_URL:-}";
+        echo "  PAYLOAD_DATABASE_URL=$${PAYLOAD_DATABASE_URL:-}";
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
         echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
 
@@ -281,18 +311,22 @@ services:
 # 7) Volumes (персистентные данные)
 # =========================
 volumes:
-  # Данные Postgres
-  db-data:
-    name: pet-courses-project_db-data
+  # Prisma / NextAuth (db-sessions)
+  db-sessions-data:
+    name: pet-courses-project_db-sessions-data
+
+  # Payload CMS курсы (db-courses)
+  db-courses-data:
+    name: pet-courses-project_db-courses-data
 
   # Данные MinIO
   minio-data:
     name: pet-courses-project_minio-data
 
-  # Unix socket для Postgres (и потенциального dbfix)
+  # Unix socket для db-sessions (и потенциального dbfix)
   pg-run:
 
-  # Данные MongoDB (bot / Payload)
+  # Данные MongoDB (bot / Payload 2)
   mongo_data:
 
   # node_modules бота (отдельно от хоста)

@@ -2,9 +2,9 @@ services:
   # =========================
   # Dev-override поверх docker-compose.yml
   # =========================
-  # Только отличия от базового файла. db, minio, createbuckets, mongo, bot, volumes, ports,
-  # depends_on — из docker-compose.yml. Списки (ports, volumes) в dev не дублируем:
-  # Compose склеивает их, а не заменяет → EADDRINUSE.
+  # Только отличия от базового файла. db-sessions, db-courses, minio, createbuckets,
+  # mongo, bot, volumes, ports — из docker-compose.yml. Списки (ports, volumes) в dev
+  # не дублируем: Compose склеивает их, а не заменяет → EADDRINUSE.
 
   web:
     image: node:20-alpine
@@ -24,7 +24,9 @@ services:
 
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+      # Docker DNS: имена сервисов, не 127.0.0.1
+      DATABASE_URL: postgres://postgres:postgres@db-sessions:5432/sessions
+      PAYLOAD_DATABASE_URL: postgres://postgres:postgres@db-courses:5432/courses
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}

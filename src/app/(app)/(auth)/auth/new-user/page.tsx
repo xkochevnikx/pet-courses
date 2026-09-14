@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { initialInversify } from "@/app/initInversifyContainer";
+import { initialInversify } from "@/app/(app)/initInversifyContainer";
 import { UpdateProfileForm } from "@/features/update-profile";
 import { SessionServer } from "@/shared/types/abstract-classes";
 import { Separator } from "@/shared/ui/separator";

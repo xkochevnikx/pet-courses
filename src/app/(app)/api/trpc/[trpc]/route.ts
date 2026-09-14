@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
-import { initialInversify } from "@/app/initInversifyContainer";
+import { initialInversify } from "@/app/(app)/initInversifyContainer";
 import { mergeRouters } from "@/shared/lib/trpc/procedure";
 import { Controller, sharedRouter } from "@/shared/lib/trpc/server";
 import { CreateContext } from "@/shared/types/abstract-classes";

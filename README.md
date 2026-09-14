@@ -182,12 +182,12 @@ createUserAbility(session).canGetUser(userId);
 
 ### 4.5. Инфраструктура «как на стенде»
 
-| Сервис                    | Назначение                                                |
-| ------------------------- | --------------------------------------------------------- |
-| `web`                     | Next.js (dev hot-reload / stage: migrate → build → start) |
-| `db`                      | PostgreSQL                                                |
-| `minio` + `createbuckets` | S3-хранилище + init bucket                                |
-| `mongo` + `bot`           | Payload admin + Telegram OAuth                            |
+| Сервис                       | Назначение                                                |
+| ---------------------------- | --------------------------------------------------------- |
+| `web`                        | Next.js (dev hot-reload / stage: migrate → build → start) |
+| `db-sessions` / `db-courses` | PostgreSQL (Prisma / Payload CMS)                         |
+| `minio` + `createbuckets`    | S3-хранилище + init bucket                                |
+| `mongo` + `bot`              | Payload admin + Telegram OAuth                            |
 
 - Multi-stage **Dockerfile**, non-root user, `output: "standalone"`
 - Compose: `docker-compose.yml` + override `docker-compose.dev.yml`
