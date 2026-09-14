@@ -18,21 +18,31 @@
 
 **Сервисы:**
 
-| Сервис          | Контейнер               | Назначение                      |
-| --------------- | ----------------------- | ------------------------------- |
-| `db`            | `db`                    | Postgres                        |
-| `minio`         | `minio`                 | S3-совместимое хранилище        |
-| `createbuckets` | `createbuckets`         | One-shot: создаёт бакет в MinIO |
-| `web`           | `web-dev` / `web-stage` | Next.js (dev или stage)         |
-| `mongo`         | `mongo`                 | MongoDB для bot / Payload       |
-| `bot`           | `bot`                   | Payload 2 + Express (OAuth)     |
+| Сервис          | Контейнер               | Назначение                             |
+| --------------- | ----------------------- | -------------------------------------- |
+| `db-sessions`   | `db-sessions`           | Postgres: Prisma / NextAuth (юзеры)    |
+| `db-courses`    | `db-courses`            | Postgres: Payload 3 CMS (курсы)        |
+| `minio`         | `minio`                 | S3-совместимое хранилище               |
+| `createbuckets` | `createbuckets`         | One-shot: создаёт бакет в MinIO        |
+| `web`           | `web-dev` / `web-stage` | Next.js + Payload 3 CMS                |
+| `mongo`         | `mongo`                 | MongoDB для bot / Payload 2            |
+| `bot`           | `bot`                   | Payload 2 + Express (OAuth / Telegram) |
+
+**Два отдельных Postgres-контейнера:**
+
+| Контейнер     | Database   | Env                    | Порт с хоста | В Docker-сети      |
+| ------------- | ---------- | ---------------------- | ------------ | ------------------ |
+| `db-sessions` | `sessions` | `DATABASE_URL`         | `5432`       | `db-sessions:5432` |
+| `db-courses`  | `courses`  | `PAYLOAD_DATABASE_URL` | `5433`       | `db-courses:5432`  |
+
+`db-init` больше не нужен: у каждого контейнера свой `POSTGRES_DB` и свой volume.
 
 **Compose-файлы:**
 
-| Файл                     | Где используется | Что делает                                                  |
-| ------------------------ | ---------------- | ----------------------------------------------------------- |
-| `docker-compose.yml`     | стенд + база     | db, minio, createbuckets, web, mongo, bot                   |
-| `docker-compose.dev.yml` | только локально  | override только для `web` → `web-dev` (hot reload, dev env) |
+| Файл                     | Где используется | Что делает                                                        |
+| ------------------------ | ---------------- | ----------------------------------------------------------------- |
+| `docker-compose.yml`     | стенд + база     | db-sessions, db-courses, minio, createbuckets, web, mongo, bot    |
+| `docker-compose.dev.yml` | только локально  | override только для `web` → `web-dev` (hot reload, dev env + URL) |
 
 **Порядок `-f` важен:** сначала базовый файл, потом override.
 
@@ -52,7 +62,7 @@ docker compose -f docker-compose.yml <команда>
 
 ### Локальная разработка — одной командой
 
-Поднимает db → minio → createbuckets → web-dev на `localhost:3000`. Сервисы `mongo` и `bot` — из базового compose (поднять отдельно: `up -d mongo bot`).
+Поднимает db-sessions → db-courses → minio → createbuckets → web-dev на `localhost:3000`. Сервисы `mongo` и `bot` — из базового compose (поднять отдельно: `up -d mongo bot`).
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
@@ -60,7 +70,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
 
 ### Стенд — одной командой
 
-Поднимает db → minio → createbuckets → web-stage (migrate → build → start).
+Поднимает db-sessions → db-courses → minio → createbuckets → web-stage (migrate → build → start).
 
 ```bash
 docker compose -f docker-compose.yml up -d
@@ -73,22 +83,28 @@ docker compose -f docker-compose.yml up -d
 ### 3.1. Пошаговый запуск (если нужно по частям)
 
 ```bash
-# Шаг 1 — инфраструктура
-docker compose -f docker-compose.yml up -d db minio
+# Шаг 1 — два Postgres
+docker compose -f docker-compose.yml up -d db-sessions db-courses
 
-# Шаг 2 — бакет MinIO
+# Шаг 2 — MinIO
+docker compose -f docker-compose.yml up -d minio
 docker compose -f docker-compose.yml up createbuckets
 
-# Шаг 3 — Next.js dev
+# Шаг 3 — Next.js dev (+ Payload 3)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
 ```
 
 ### 3.2. Что делает dev-контейнер `web-dev`
 
+- зависит от `db-sessions` и `db-courses` (оба healthy)
 - `npm install` → `prisma migrate deploy` (или `db push`) → `npm run dev`
 - `NODE_ENV=development`, hot reload через polling
-- `DATABASE_URL` внутри контейнера: `postgres://postgres:postgres@db:5432/postgres`
-- порт БД с хоста: `localhost:5432` → `db:5432` (из `docker-compose.yml`)
+- внутри контейнера (из `docker-compose.dev.yml`):
+  - `DATABASE_URL=postgres://postgres:postgres@db-sessions:5432/sessions`
+  - `PAYLOAD_DATABASE_URL=postgres://postgres:postgres@db-courses:5432/courses`
+- с хоста: sessions `localhost:5432`, courses `localhost:5433`
+- CMS админка корневого web: http://localhost:3000/admin  
+  (это **не** Payload 2 бота на `:3001`)
 
 ### 3.3. Логи и env
 
@@ -97,7 +113,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
 docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f web
 
 docker exec -it web-dev sh -lc \
-  'env | grep -E "DATABASE_URL|S3_ENDPOINT|S3_BUCKET|S3_PUBLIC_URL|NEXTAUTH_URL"'
+  'env | grep -E "DATABASE_URL|PAYLOAD_DATABASE_URL|PAYLOAD_SECRET|S3_ENDPOINT|S3_BUCKET|S3_PUBLIC_URL|NEXTAUTH_URL"'
 ```
 
 ### 3.4. Остановка (данные сохраняются)
@@ -142,7 +158,10 @@ docker compose -f docker-compose.yml down
 Отличия от локального `.env`:
 
 ```env
-DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+# Локально в .env — 127.0.0.1 + порты 5432/5433.
+# В web-stage / web-dev URL переопределяются на db-sessions / db-courses.
+PAYLOAD_SECRET=<длинная-случайная-строка>
+
 NEXTAUTH_URL=https://<ваш-домен>
 NEXT_PUBLIC_URL=https://<ваш-домен>
 TEST_ENV_BASE_URL=https://<ваш-домен>
@@ -158,17 +177,21 @@ BOT_CLIENT_SECRET=<как в Payload oauthClients>
 > `BOT_PUBLIC_URL` — URL для **браузера** (authorize через nginx).  
 > `AUTHORIZATION_BOT_URL` — URL для **контейнера web** → `bot:3001` (token/user).
 
+> В compose у `web` уже прописаны `DATABASE_URL` / `PAYLOAD_DATABASE_URL` на `db-sessions` / `db-courses`. В `.env` для IDE/хоста оставляй `127.0.0.1:5432` и `127.0.0.1:5433`.
+
 ### 4.6. Nginx: бот + Payload Admin + OAuth
 
 Бот на `127.0.0.1:3001`. Готовый конфиг: **`deploy/nginx/bot-payload.conf`**
 
-| Путь                                 | Куда      | Назначение         |
-| ------------------------------------ | --------- | ------------------ |
-| `/admin`                             | bot :3001 | Payload Admin      |
-| `/api/users`, `/api/oauthClients`, … | bot :3001 | Payload API        |
-| `/oauth/`                            | bot :3001 | OAuth Telegram     |
-| `/api/auth/`, `/api/trpc/`           | web :3000 | Next.js (как было) |
-| `/`                                  | web :3000 | сайт               |
+| Путь                                 | Куда      | Назначение                        |
+| ------------------------------------ | --------- | --------------------------------- |
+| `/admin`                             | bot :3001 | Payload **2** Admin (бот / OAuth) |
+| `/api/users`, `/api/oauthClients`, … | bot :3001 | Payload 2 API                     |
+| `/oauth/`                            | bot :3001 | OAuth Telegram                    |
+| `/api/auth/`, `/api/trpc/`           | web :3000 | Next.js                           |
+| `/`                                  | web :3000 | сайт                              |
+
+> В корневом Next тоже есть Payload **3** (`/admin` на `:3000`). На стенде nginx сейчас отдаёт `/admin` на **bot**. Локально CMS курсов: `http://localhost:3000/admin`. Маршрутизацию стенда при необходимости развести отдельно (разные пути / поддомены).
 
 В `bot/.env` на стенде:
 
@@ -192,8 +215,6 @@ curl -sI "https://svt-staging.ru/oauth/authorize?client_id=x" | head -3
 
 > **Безопасность:** админка публична — сильный пароль; опционально basic auth в nginx (см. комментарий в `bot-payload.conf`).
 
-> В базовом compose `DATABASE_URL` не переопределяется — на стенде в `.env` обязательно хост `db`, не `localhost`.
-
 ---
 
 ## 5. Диагностика
@@ -210,10 +231,18 @@ docker network ls
 ### 5.2. Postgres
 
 ```bash
-docker logs -n 200 db
-docker exec -it db sh -lc 'pg_isready -U postgres'
-docker exec -it db psql -U postgres -d postgres
-docker exec -it db psql -U postgres -d postgres \
+docker logs -n 200 db-sessions
+docker logs -n 200 db-courses
+
+docker exec -it db-sessions sh -lc 'pg_isready -U postgres -d sessions'
+docker exec -it db-courses sh -lc 'pg_isready -U postgres -d courses'
+
+# Prisma / sessions
+docker exec -it db-sessions psql -U postgres -d sessions \
+  -c "select now(), current_database(), current_user;"
+
+# Payload / courses
+docker exec -it db-courses psql -U postgres -d courses \
   -c "select now(), current_database(), current_user;"
 ```
 
@@ -265,7 +294,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml restart web
 docker compose -f docker-compose.yml restart web
 
 # инфраструктура
-docker compose -f docker-compose.yml restart db
+docker compose -f docker-compose.yml restart db-sessions
+docker compose -f docker-compose.yml restart db-courses
 docker compose -f docker-compose.yml restart minio
 ```
 
@@ -279,8 +309,11 @@ docker compose -f docker-compose.yml restart minio
 docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
 
 # volumes вручную, если остались
-docker volume rm pet-courses-project_db-data
+docker volume rm pet-courses-project_db-sessions-data
+docker volume rm pet-courses-project_db-courses-data
 docker volume rm pet-courses-project_minio-data
+# старый volume одного Postgres (если остался после миграции на два контейнера):
+# docker volume rm pet-courses-project_db-data
 
 # кастомные образы проекта (если есть)
 docker rmi local/next-app local/minio local/postgres

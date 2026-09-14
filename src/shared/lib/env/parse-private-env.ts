@@ -21,13 +21,6 @@ const parsePrivateEnvSchema = z.object({
   S3_BUCKET: z.string(),
   S3_ENDPOINT: z.string(),
   S3_REGION: z.string(),
-
-  SCHEMA_DIR: z.string(),
-  OUTPUT_DIR: z.string(),
-  SCHEMA_FILES: z.string(),
-
-  CONTENT_URL: z.string(),
-  CONTENT_TOKEN: z.string().optional(),
 });
 
 export const privateEnv = parsePrivateEnvSchema.parse(process?.env);

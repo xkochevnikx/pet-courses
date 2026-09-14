@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 
-import { initialInversify } from "@/app/initInversifyContainer";
+import { initialInversify } from "@/app/(app)/initInversifyContainer";
 import { NextAuthConfig } from "@/shared/types/abstract-classes";
 
 const authHandler = NextAuth(initialInversify.get(NextAuthConfig).options);

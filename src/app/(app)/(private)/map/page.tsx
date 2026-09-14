@@ -1,4 +1,4 @@
-import { CoursesMap } from "@/features/courses-map/ui/courses-map/courses-map";
+import { CoursesMap } from "@/features/courses-map";
 
 export default function Map() {
   return (

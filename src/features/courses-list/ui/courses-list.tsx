@@ -21,7 +21,7 @@ export const CoursesList = ({
   });
   return (
     <div className={cn(className, "flex flex-col gap-3")}>
-      {courses.map((course, index) => (
+      {courses?.map((course, index) => (
         <React.Fragment key={index}>
           <CourseItem course={course} />
         </React.Fragment>
