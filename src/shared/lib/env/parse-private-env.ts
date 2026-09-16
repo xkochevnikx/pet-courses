@@ -13,9 +13,9 @@ const parsePrivateEnvSchema = z.object({
   EMAIL_SERVER_HOST: z.string().optional(),
   EMAIL_SERVER_PORT: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
-
+  PAYLOAD_SECRET: z.string(),
   ADMIN_EMAILS: z.string().optional(),
-
+  PAYLOAD_DATABASE_URL: z.string(),
   S3_ACCESS_KEY_ID: z.string(),
   S3_SECRET_ACCESS_KEY: z.string(),
   S3_BUCKET: z.string(),

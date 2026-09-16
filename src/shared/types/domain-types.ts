@@ -35,6 +35,8 @@ export type CourseEntity = {
   id: string;
   title: string;
   slug: string;
+  description: string;
+  image?: string | null;
 };
 
 export type CreateUser = {

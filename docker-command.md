@@ -12,6 +12,9 @@
 6. [Управление сервисами](#6-управление-сервисами)
 7. [Очистка](#7-очистка)
 
+> **Стенд ~2 ГБ RAM:** не поднимай всё одной командой — см. отдельный гайд  
+> **[`docker-phased-up.md`](./docker-phased-up.md)** (инфра → web build → bot).
+
 ---
 
 ## 1. Общая информация
@@ -125,6 +128,9 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ---
 
 ## 4. Стенд (сервер)
+
+> На ~2 ГБ RAM используй поэтапный запуск: **[`docker-phased-up.md`](./docker-phased-up.md)**.  
+> Один `up -d` ниже может убить `web` на `next build` (OOM / `Killed`).
 
 ### 4.1. Запуск
 
