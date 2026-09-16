@@ -1,5 +1,8 @@
 "use client";
 import {
+  Background,
+  BackgroundVariant,
+  Controls,
   ReactFlow,
   addEdge,
   applyEdgeChanges,
@@ -12,6 +15,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useState } from "react";
+
+import { FlowProvider } from "./flow-provider";
 
 const initialNodes: Node[] = [
   { id: "n1", position: { x: 0, y: 0 }, data: { label: "Node 1" } },
@@ -40,15 +45,20 @@ export default function Flow() {
   );
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-      />
-    </div>
+    <FlowProvider>
+      <div style={{ width: "100vw", height: "100vh" }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+        >
+          <Background variant={BackgroundVariant.Dots} />
+          <Controls />
+        </ReactFlow>
+      </div>
+    </FlowProvider>
   );
 }
