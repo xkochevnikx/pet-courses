@@ -202,9 +202,11 @@ services:
         echo "  S3_ENDPOINT=$${S3_ENDPOINT:-}";
         echo "  S3_PUBLIC_URL=$${S3_PUBLIC_URL:-}";
 
-        # 1) Зависимости: всегда чистая установка по lockfile (npm ci удаляет старый node_modules)
+        # 1) Зависимости: полный install (dev тоже) — в этом контейнере идёт next build
+        #    (next.config.ts → typescript; tailwind/postcss и т.д. в devDependencies).
+        #    NODE_ENV=production иначе выкинул бы devDeps.
         echo "[web-stage] deps...";
-        npm ci --no-audit --no-fund;
+        npm ci --include=dev --no-audit --no-fund;
 
         # 2) Prisma generate (генерирует клиент под текущую схему)
         echo "[web-stage] prisma generate...";
