@@ -238,6 +238,7 @@ services:
         fi;
 
         # 5) Сборка Next.js (создаёт .next)
+        #    Payload-схема (db-courses) подтянется через drizzle push при первом getPayload()
         echo "[web-stage] next build...";
         npm run build;
 

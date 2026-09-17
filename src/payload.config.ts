@@ -40,6 +40,9 @@ export default buildConfig({
       // Подключение к БД курсов (db-courses), не Prisma sessions
       connectionString: privateEnv.PAYLOAD_DATABASE_URL,
     },
+    // Явно: синхронизировать схему при init и в production (pet/staging).
+    // Для «как Prisma» позже — миграции в src/migrations + payload migrate.
+    push: true,
   }),
   // Обработка картинок (ресайз/оптимизация upload)
   sharp,
