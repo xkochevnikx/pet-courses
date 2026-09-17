@@ -143,7 +143,8 @@ services:
   # 4) web-stage (Next.js + Prisma)
   # =========================
   web:
-    image: node:20-bookworm-slim
+    # Node 22: AWS SDK; openssl: Prisma libssl detect (bookworm-slim без него → warn)
+    image: node:22-bookworm-slim
     container_name: web-stage
 
     # Если упадёт — поднимется, но не в бесконечный loop если ты сам стопнул
@@ -192,6 +193,14 @@ services:
       sh -lc '
         # Выходим при первой ошибке (важно: иначе можно “ехать дальше” с поломанным состоянием)
         set -e;
+
+        # OpenSSL для Prisma (в slim-образе его часто нет)
+        if ! dpkg -s openssl >/dev/null 2>&1; then
+          echo "[web-stage] apt: openssl...";
+          apt-get update -y;
+          apt-get install -y --no-install-recommends openssl ca-certificates;
+          rm -rf /var/lib/apt/lists/*;
+        fi;
 
         # Печатаем ключевые env, чтобы сразу видеть, что реально подхватилось в контейнере
         echo "[web-stage] env sanity:";

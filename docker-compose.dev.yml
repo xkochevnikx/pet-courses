@@ -7,11 +7,19 @@ services:
   # не дублируем: Compose склеивает их, а не заменяет → EADDRINUSE.
 
   web:
-    image: node:20-alpine
+    image: node:22-bookworm-slim
     container_name: web-dev
 
     command: >
       sh -lc "
+        set -e;
+        if ! dpkg -s openssl >/dev/null 2>&1; then
+          echo '[web-dev] apt: openssl...';
+          apt-get update -y;
+          apt-get install -y --no-install-recommends openssl ca-certificates;
+          rm -rf /var/lib/apt/lists/*;
+        fi;
+
         echo '[web-dev] npm install (mount volume)...';
         npm install --no-audit --no-fund;
 
