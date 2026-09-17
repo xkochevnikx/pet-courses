@@ -106,7 +106,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d web
   - `DATABASE_URL=postgres://postgres:postgres@db-sessions:5432/sessions`
   - `PAYLOAD_DATABASE_URL=postgres://postgres:postgres@db-courses:5432/courses`
 - с хоста: sessions `localhost:5432`, courses `localhost:5433`
-- CMS админка корневого web: http://localhost:3000/admin  
+- CMS админка корневого web: http://localhost:3000/admin-cms
+- Bot админка: http://localhost:3001/admin-bot  
   (это **не** Payload 2 бота на `:3001`)
 
 ### 3.3. Логи и env
@@ -191,13 +192,14 @@ BOT_CLIENT_SECRET=<как в Payload oauthClients>
 
 | Путь                                 | Куда      | Назначение                        |
 | ------------------------------------ | --------- | --------------------------------- |
-| `/admin`                             | bot :3001 | Payload **2** Admin (бот / OAuth) |
+| `/admin-cms`                         | web :3000 | Payload **3** Admin (курсы)       |
+| `/admin-bot`                         | bot :3001 | Payload **2** Admin (бот / OAuth) |
 | `/api/users`, `/api/oauthClients`, … | bot :3001 | Payload 2 API                     |
 | `/oauth/`                            | bot :3001 | OAuth Telegram                    |
 | `/api/auth/`, `/api/trpc/`           | web :3000 | Next.js                           |
 | `/`                                  | web :3000 | сайт                              |
 
-> В корневом Next тоже есть Payload **3** (`/admin` на `:3000`). На стенде nginx сейчас отдаёт `/admin` на **bot**. Локально CMS курсов: `http://localhost:3000/admin`. Маршрутизацию стенда при необходимости развести отдельно (разные пути / поддомены).
+> CMS курсов: `/admin-cms` (web :3000, API `/api/cms`). Бот: `/admin-bot` (bot :3001).
 
 В `bot/.env` на стенде:
 
@@ -207,17 +209,23 @@ PAYLOAD_PUBLIC_URL=https://svt-staging.ru
 
 ```bash
 sudo nginx -t && sudo systemctl reload nginx
-docker compose -f docker-compose.yml restart bot
+docker compose -f docker-compose.yml up -d --force-recreate web bot
 ```
 
 Проверка:
 
 ```bash
-curl -sI https://svt-staging.ru/admin | head -3
+curl -sI http://127.0.0.1:3000/admin-cms | head -5
+curl -sI http://127.0.0.1:3001/admin-bot | head -5
+curl -sI https://svt-staging.ru/admin-cms | head -5
+curl -sI https://svt-staging.ru/admin-bot | head -5
 curl -sI "https://svt-staging.ru/oauth/authorize?client_id=x" | head -3
 ```
 
-Админка: https://svt-staging.ru/admin — первый пользователь: `/admin/create-first-user`.
+Админки:
+
+- CMS курсов: https://svt-staging.ru/admin-cms — first user: `/admin-cms/create-first-user`
+- Бот: https://svt-staging.ru/admin-bot — first user: `/admin-bot/create-first-user`
 
 > **Безопасность:** админка публична — сильный пароль; опционально basic auth в nginx (см. комментарий в `bot-payload.conf`).
 

@@ -12,6 +12,9 @@ import { Users } from "./collections/users";
 
 export default buildConfig({
   serverURL: process.env.PAYLOAD_PUBLIC_URL,
+  routes: {
+    admin: "/admin-bot",
+  },
   admin: {
     user: Users.slug,
     bundler: webpackBundler(),
