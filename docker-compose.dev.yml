@@ -16,7 +16,7 @@ services:
         npm install --no-audit --no-fund;
 
         echo '[web-dev] Prisma migrate...';
-        npx prisma migrate deploy || npx prisma db push;
+        npm run prisma:migrate || npm run prisma:push;
 
         echo '[web-dev] start dev server';
         npm run dev
