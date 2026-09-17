@@ -45,7 +45,9 @@ jobs:
             set -e;
             cd ~/pet-courses;
             echo "Deploying to staging...";
-            git pull;
+            git fetch origin;
+            git checkout main;
+            git reset --hard origin/main;
             echo "Recreating containers (env from .env / bot/.env; DB/Mongo volumes kept)...";
 
             # docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans
