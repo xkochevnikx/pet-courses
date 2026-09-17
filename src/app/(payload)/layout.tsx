@@ -7,7 +7,7 @@ import config from "@payload-config";
 
 import "@payloadcms/next/css";
 
-import { importMap } from "./admin/importMap.js";
+import { importMap } from "./admin-cms/importMap.js";
 
 import type { ServerFunctionClient } from "payload";
 

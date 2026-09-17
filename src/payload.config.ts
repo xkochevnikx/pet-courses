@@ -17,8 +17,15 @@ const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 export default buildConfig({
+  // Публичные пути CMS (не пересекаются с bot /admin-bot и /api/* бота)
+  routes: {
+    admin: "/admin-cms",
+    api: "/api/cms",
+    graphQL: "/api/cms/graphql",
+    graphQLPlayground: "/api/cms/graphql-playground",
+  },
   admin: {
-    // Коллекция с auth: true — кто логинится в /admin (не NextAuth)
+    // Коллекция с auth: true — кто логинится в /admin-cms (не NextAuth)
     user: "users",
     importMap: {
       // Откуда резолвить кастомные admin-компоненты / import map
